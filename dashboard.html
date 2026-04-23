@@ -10,27 +10,22 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
 
-  /* 헤더 */
   .header { background: #fff; border-bottom: 1px solid #eee; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
   .header-title { font-size: 16px; font-weight: 600; }
   .header-user { font-size: 13px; color: #888; display: flex; align-items: center; gap: 12px; }
   .logout-btn { font-size: 13px; color: #e53e3e; cursor: pointer; background: none; border: none; }
 
-  /* 탭 */
-  .tabs { background: #fff; border-bottom: 1px solid #eee; display: flex; padding: 0 24px; gap: 0; }
+  .tabs { background: #fff; border-bottom: 1px solid #eee; display: flex; padding: 0 24px; }
   .tab { padding: 14px 20px; font-size: 14px; font-weight: 500; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
   .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
 
-  /* 컨텐츠 */
   .content { padding: 24px; max-width: 1200px; margin: 0 auto; }
   .section { display: none; }
   .section.active { display: block; }
 
-  /* 카드 */
   .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid #eee; }
   .card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #333; }
 
-  /* 폼 */
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .form-group { display: flex; flex-direction: column; gap: 6px; }
   .form-group.full { grid-column: 1 / -1; }
@@ -43,7 +38,6 @@
   .form-group input:focus, .form-group select:focus { border-color: #4f46e5; }
   .form-group input[readonly] { background: #f9f9f9; color: #888; }
 
-  /* 버튼 */
   .btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
   .btn-primary { background: #4f46e5; color: #fff; }
   .btn-primary:hover { background: #4338ca; }
@@ -52,30 +46,25 @@
   .btn-sm { padding: 6px 12px; font-size: 13px; }
   .btn-row { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
 
-  /* 테이블 */
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th { background: #f8f8f8; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #eee; white-space: nowrap; }
   td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
   tr:hover td { background: #fafafa; }
 
-  /* 뱃지 */
   .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 500; }
   .badge-on     { background: #d1fae5; color: #065f46; }
   .badge-off    { background: #fee2e2; color: #991b1b; }
   .badge-sanity { background: #fef3c7; color: #92400e; }
   .badge-etc    { background: #f3f4f6; color: #374151; }
 
-  /* 검색 */
   .search-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
   .search-input { padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; flex: 1; max-width: 300px; }
   .search-input:focus { border-color: #4f46e5; }
 
-  /* 로딩 */
   .loading { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
 
-  /* 알림 */
-  .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; display: none; z-index: 999; }
+  .toast { position: fixed; bottom: 24px; right: 24px; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; display: none; z-index: 999; transition: background 0.2s; }
 
   @media (max-width: 600px) {
     .form-grid { grid-template-columns: 1fr; }
@@ -94,10 +83,10 @@
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('institutions')">기관 관리</div>
-  <div class="tab" onclick="switchTab('classrooms')">교실 관리</div>
-  <div class="tab" onclick="switchTab('contracts')">계약 정보</div>
-  <div class="tab" id="logTab" onclick="switchTab('logs')" style="display:none">변경 로그</div>
+  <div class="tab active" onclick="switchTab('institutions', this)">기관 관리</div>
+  <div class="tab" onclick="switchTab('classrooms', this)">교실 관리</div>
+  <div class="tab" onclick="switchTab('contracts', this)">계약 정보</div>
+  <div class="tab" id="logTab" onclick="switchTab('logs', this)" style="display:none">변경 로그</div>
 </div>
 
 <div class="content">
@@ -379,26 +368,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ==============================
-// 날짜 포맷 헬퍼
-// ==============================
-function fmtDate(val) {
-  if (!val || val === '') return '';
-  const d = new Date(val);
-  if (isNaN(d.getTime())) return val;
-  const kst = new Date(d.getTime() + (9 * 60 * 60 * 1000));
-  const pad = n => String(n).padStart(2, '0');
-  const yyyy = kst.getUTCFullYear();
-  const mm   = pad(kst.getUTCMonth() + 1);
-  const dd   = pad(kst.getUTCDate());
-  const hh   = pad(kst.getUTCHours());
-  const mi   = pad(kst.getUTCMinutes());
-  const ss   = pad(kst.getUTCSeconds());
-  // 시분초가 00:00:00 이면 날짜만 표시
-  if (hh === '00' && mi === '00' && ss === '00') return `${yyyy}-${mm}-${dd}`;
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
-}
- 
 const API    = 'https://script.google.com/macros/s/AKfycbx7SNtdVTDbe66mXwcU-Fc_rrZrsC1t4NLNKsyU1cOu8gQEFRlPEqr9-cRtwOsbq1tp9w/exec';
 const token  = localStorage.getItem('ch_token');
 const role   = localStorage.getItem('ch_role');
@@ -415,12 +384,31 @@ if (role !== 'branch') {
 }
 
 // ==============================
+// 날짜 포맷 헬퍼
+// ==============================
+function fmtDate(val) {
+  if (!val || val === '') return '';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  const kst = new Date(d.getTime() + (9 * 60 * 60 * 1000));
+  const pad = n => String(n).padStart(2, '0');
+  const yyyy = kst.getUTCFullYear();
+  const mm   = pad(kst.getUTCMonth() + 1);
+  const dd   = pad(kst.getUTCDate());
+  const hh   = pad(kst.getUTCHours());
+  const mi   = pad(kst.getUTCMinutes());
+  const ss   = pad(kst.getUTCSeconds());
+  if (hh === '00' && mi === '00' && ss === '00') return `${yyyy}-${mm}-${dd}`;
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+}
+
+// ==============================
 // 탭 전환
 // ==============================
-function switchTab(tab) {
+function switchTab(tab, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  event.target.classList.add('active');
+  el.classList.add('active');
   document.getElementById('sec-' + tab).classList.add('active');
 
   if (tab === 'institutions' && !window._instLoaded) loadInstitutions();
@@ -433,6 +421,7 @@ function switchTab(tab) {
 // 기관 목록
 // ==============================
 let instData = [];
+
 async function loadInstitutions() {
   try {
     const r = await fetch(`${API}?action=getInstitutions&token=${token}`);
@@ -446,7 +435,10 @@ async function loadInstitutions() {
 
 function renderInstitutions(data) {
   const tb = document.getElementById('inst-tbody');
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="loading">데이터 없음</td></tr>'; return; }
+  if (!data.length) {
+    tb.innerHTML = '<tr><td colspan="8" class="loading">데이터 없음</td></tr>';
+    return;
+  }
   tb.innerHTML = data.map(r => `
     <tr>
       <td>${r['기관ID']||''}</td>
@@ -477,7 +469,6 @@ function editInstitution(id) {
     const el = document.getElementById('f-' + k);
     if (el) el.value = r[k] || '';
   });
-  switchTabDirect('institutions');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -488,11 +479,23 @@ async function saveInstitution() {
     const el = document.getElementById('f-' + k);
     if (el) data[k] = el.value.trim();
   });
-  if (!data['기관ID'] || !data['기관명']) { showToast('기관ID와 기관명은 필수입니다.'); return; }
-  await postData('saveInstitution', data);
-  window._instLoaded = false;
-  loadInstitutions();
-  resetInstitutionForm();
+  if (!data['기관ID'] || !data['기관명']) {
+    showToast('기관ID와 기관명은 필수입니다.');
+    return;
+  }
+
+  await postData('saveInstitution', data, () => {
+    const idx = instData.findIndex(x => x['기관ID'] === data['기관ID']);
+    if (idx > -1) {
+      instData[idx] = { ...instData[idx], ...data };
+    } else {
+      instData.unshift({ ...data, 등록일: fmtDate(new Date().toISOString()) });
+    }
+    renderInstitutions(instData);
+    resetInstitutionForm();
+  });
+
+  setTimeout(() => { window._instLoaded = false; loadInstitutions(); }, 3000);
 }
 
 function resetInstitutionForm() {
@@ -507,6 +510,7 @@ function resetInstitutionForm() {
 // 교실 목록
 // ==============================
 let clsData = [];
+
 async function loadClassrooms() {
   try {
     const r = await fetch(`${API}?action=getClassrooms&token=${token}`);
@@ -520,7 +524,10 @@ async function loadClassrooms() {
 
 function renderClassrooms(data) {
   const tb = document.getElementById('cls-tbody');
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="loading">데이터 없음</td></tr>'; return; }
+  if (!data.length) {
+    tb.innerHTML = '<tr><td colspan="8" class="loading">데이터 없음</td></tr>';
+    return;
+  }
   tb.innerHTML = data.map(r => `
     <tr>
       <td>${r['siteID']||''}</td>
@@ -545,7 +552,8 @@ function filterClassrooms() {
 
 function autoFillGwanID() {
   const siteID = document.getElementById('fc-siteID').value.trim();
-  document.getElementById('fc-기관ID').value = siteID.includes('_') ? siteID.split('_')[0] : '';
+  document.getElementById('fc-기관ID').value =
+    siteID.includes('_') ? siteID.split('_')[0] : '';
 }
 
 function editClassroom(id) {
@@ -556,7 +564,6 @@ function editClassroom(id) {
     const el = document.getElementById('fc-' + k);
     if (el) el.value = r[k] || '';
   });
-  switchTabDirect('classrooms');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -568,10 +575,20 @@ async function saveClassroom() {
     if (el) data[k] = el.value.trim();
   });
   if (!data['siteID']) { showToast('siteID는 필수입니다.'); return; }
-  await postData('saveClassroom', data);
-  window._clsLoaded = false;
-  loadClassrooms();
-  resetClassroomForm();
+  data['기관ID'] = data['siteID'].split('_')[0];
+
+  await postData('saveClassroom', data, () => {
+    const idx = clsData.findIndex(x => x['siteID'] === data['siteID']);
+    if (idx > -1) {
+      clsData[idx] = { ...clsData[idx], ...data };
+    } else {
+      clsData.unshift({ ...data });
+    }
+    renderClassrooms(clsData);
+    resetClassroomForm();
+  });
+
+  setTimeout(() => { window._clsLoaded = false; loadClassrooms(); }, 3000);
 }
 
 function resetClassroomForm() {
@@ -586,6 +603,7 @@ function resetClassroomForm() {
 // 계약 목록
 // ==============================
 let ctData = [];
+
 async function loadContracts() {
   try {
     const r = await fetch(`${API}?action=getContracts&token=${token}`);
@@ -599,7 +617,10 @@ async function loadContracts() {
 
 function renderContracts(data) {
   const tb = document.getElementById('ct-tbody');
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="7" class="loading">데이터 없음</td></tr>'; return; }
+  if (!data.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="loading">데이터 없음</td></tr>';
+    return;
+  }
   tb.innerHTML = data.map(r => `
     <tr>
       <td>${r['기관ID']||''}</td>
@@ -615,7 +636,9 @@ function renderContracts(data) {
 
 function filterContracts() {
   const q = document.getElementById('ct-search').value.toLowerCase();
-  renderContracts(ctData.filter(r => (r['기관ID']||'').toLowerCase().includes(q)));
+  renderContracts(ctData.filter(r =>
+    (r['기관ID']||'').toLowerCase().includes(q)
+  ));
 }
 
 function editContract(id) {
@@ -625,7 +648,6 @@ function editContract(id) {
     const el = document.getElementById('fct-' + k);
     if (el) el.value = r[k] || '';
   });
-  switchTabDirect('contracts');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -636,10 +658,19 @@ async function saveContract() {
     if (el) data[k] = el.value.trim();
   });
   if (!data['기관ID']) { showToast('기관ID는 필수입니다.'); return; }
-  await postData('saveContract', data);
-  window._ctLoaded = false;
-  loadContracts();
-  resetContractForm();
+
+  await postData('saveContract', data, () => {
+    const idx = ctData.findIndex(x => x['기관ID'] === data['기관ID']);
+    if (idx > -1) {
+      ctData[idx] = { ...ctData[idx], ...data };
+    } else {
+      ctData.unshift({ ...data });
+    }
+    renderContracts(ctData);
+    resetContractForm();
+  });
+
+  setTimeout(() => { window._ctLoaded = false; loadContracts(); }, 3000);
 }
 
 function resetContractForm() {
@@ -658,7 +689,10 @@ async function loadLogs() {
     const d = await r.json();
     if (!d.ok) throw new Error(d.error);
     const tb = document.getElementById('log-tbody');
-    if (!d.data.length) { tb.innerHTML = '<tr><td colspan="8" class="loading">로그 없음</td></tr>'; return; }
+    if (!d.data.length) {
+      tb.innerHTML = '<tr><td colspan="8" class="loading">로그 없음</td></tr>';
+      return;
+    }
     tb.innerHTML = d.data.map(r => `
       <tr>
         <td>${fmtDate(r['변경일시'])}</td>
@@ -676,20 +710,33 @@ async function loadLogs() {
 }
 
 // ==============================
-// 공통 유틸
+// 공통 저장 (낙관적 업데이트)
 // ==============================
-async function postData(action, data) {
+async function postData(action, data, onOptimistic) {
+  const requestId = Date.now() + '_' + Math.random().toString(36).slice(2);
+
+  if (onOptimistic) onOptimistic();
+  showToast('저장 중...', true);
+
   try {
-    await fetch(API, {
+    const r = await fetch(API, {
       method: 'POST',
-      body: JSON.stringify({ action, token, data })
+      body: JSON.stringify({ action, token, data, requestId })
     });
-    showToast('저장되었습니다.');
+    const result = await r.json();
+    if (result.ok || result.duplicate) {
+      showToast('저장되었습니다.');
+    } else {
+      showToast('저장 오류: ' + (result.error || ''));
+    }
   } catch(e) {
-    showToast('저장 오류: ' + e.message);
+    showToast('서버 연결 오류');
   }
 }
 
+// ==============================
+// 공통 유틸
+// ==============================
 function badgeStatus(status) {
   if (!status) return '<span class="badge badge-etc">-</span>';
   const s = String(status).toUpperCase();
@@ -699,20 +746,12 @@ function badgeStatus(status) {
   return `<span class="badge badge-etc">${status}</span>`;
 }
 
-function showToast(msg) {
+function showToast(msg, loading = false) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.textContent = loading ? '⏳ ' + msg : '✓ ' + msg;
+  t.style.background = loading ? '#6b7280' : '#1a1a1a';
   t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 3000);
-}
-
-function switchTabDirect(tab) {
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    const tabs = ['institutions','classrooms','contracts','logs'];
-    t.classList.toggle('active', tabs[i] === tab);
-  });
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('sec-' + tab).classList.add('active');
+  if (!loading) setTimeout(() => t.style.display = 'none', 2500);
 }
 
 function logout() {

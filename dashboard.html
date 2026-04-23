@@ -379,6 +379,26 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ==============================
+// 날짜 포맷 헬퍼
+// ==============================
+function fmtDate(val) {
+  if (!val || val === '') return '';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  const kst = new Date(d.getTime() + (9 * 60 * 60 * 1000));
+  const pad = n => String(n).padStart(2, '0');
+  const yyyy = kst.getUTCFullYear();
+  const mm   = pad(kst.getUTCMonth() + 1);
+  const dd   = pad(kst.getUTCDate());
+  const hh   = pad(kst.getUTCHours());
+  const mi   = pad(kst.getUTCMinutes());
+  const ss   = pad(kst.getUTCSeconds());
+  // 시분초가 00:00:00 이면 날짜만 표시
+  if (hh === '00' && mi === '00' && ss === '00') return `${yyyy}-${mm}-${dd}`;
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+}
+ 
 const API    = 'https://script.google.com/macros/s/AKfycbx7SNtdVTDbe66mXwcU-Fc_rrZrsC1t4NLNKsyU1cOu8gQEFRlPEqr9-cRtwOsbq1tp9w/exec';
 const token  = localStorage.getItem('ch_token');
 const role   = localStorage.getItem('ch_role');
@@ -435,7 +455,7 @@ function renderInstitutions(data) {
       <td>${r['주소_시도']||''}</td>
       <td>${r['원장님성함']||''}</td>
       <td>${r['원장님연락처']||''}</td>
-      <td>${r['등록일']||''}</td>
+      <td>${fmtDate(r['등록일'])}</td>
       <td><button class="btn btn-secondary btn-sm" onclick="editInstitution('${r['기관ID']}')">수정</button></td>
     </tr>
   `).join('');
@@ -506,8 +526,8 @@ function renderClassrooms(data) {
       <td>${r['siteID']||''}</td>
       <td>${r['기관ID']||''}</td>
       <td>${r['교실명']||''}</td>
-      <td>${r['서비스시작일']||''}</td>
-      <td>${r['서비스종료일']||''}</td>
+      <td>${fmtDate(r['서비스시작일'])}</td>
+      <td>${fmtDate(r['서비스종료일'])}</td>
       <td>${badgeStatus(r['OMS_상태'])}</td>
       <td>${r['OMS_서비스요일']||''}</td>
       <td><button class="btn btn-secondary btn-sm" onclick="editClassroom('${r['siteID']}')">수정</button></td>
@@ -583,9 +603,9 @@ function renderContracts(data) {
   tb.innerHTML = data.map(r => `
     <tr>
       <td>${r['기관ID']||''}</td>
-      <td>${r['계약일자']||''}</td>
-      <td>${r['계약시작일']||''}</td>
-      <td>${r['계약종료일']||''}</td>
+      <td>${fmtDate(r['계약일자'])}</td>
+      <td>${fmtDate(r['계약시작일'])}</td>
+      <td>${fmtDate(r['계약종료일'])}</td>
       <td>${r['계약기간']||''}</td>
       <td>${r['부모님서비스']||''}</td>
       <td><button class="btn btn-secondary btn-sm" onclick="editContract('${r['기관ID']}')">수정</button></td>
@@ -641,7 +661,7 @@ async function loadLogs() {
     if (!d.data.length) { tb.innerHTML = '<tr><td colspan="8" class="loading">로그 없음</td></tr>'; return; }
     tb.innerHTML = d.data.map(r => `
       <tr>
-        <td>${r['변경일시']||''}</td>
+        <td>${fmtDate(r['변경일시'])}</td>
         <td>${r['처리자']||''}</td>
         <td>${r['대상시트']||''}</td>
         <td>${r['기관ID']||''}</td>

@@ -1,0 +1,143 @@
+<!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 Contract Hub</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  .title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 32px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #444;
+    margin-bottom: 6px;
+  }
+  input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: #4f46e5; }
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  button:hover { background: #4338ca; }
+  button:disabled { background: #a5b4fc; cursor: not-allowed; }
+  .error {
+    font-size: 13px;
+    color: #e53e3e;
+    margin-top: 12px;
+    text-align: center;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="title">📋 Contract Hub</div>
+  <div class="subtitle">기관 계약 관리 시스템</div>
+  <label>아이디</label>
+  <input type="text" id="id" placeholder="아이디 입력" autocomplete="username">
+  <label>비밀번호</label>
+  <input type="password" id="pw" placeholder="비밀번호 입력" autocomplete="current-password">
+  <button id="loginBtn" onclick="login()">로그인</button>
+  <div class="error" id="errMsg"></div>
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbx7SNtdVTDbe66mXwcU-Fc_rrZrsC1t4NLNKsyU1cOu8gQEFRlPEqr9-cRtwOsbq1tp9w/exec';
+
+// 이미 로그인된 경우 바로 이동
+if (localStorage.getItem('ch_token')) {
+  location.href = 'dashboard.html';
+}
+
+document.getElementById('pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+async function login() {
+  const id  = document.getElementById('id').value.trim();
+  const pw  = document.getElementById('pw').value.trim();
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('errMsg');
+
+  if (!id || !pw) { showErr('아이디와 비밀번호를 입력해주세요.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '로그인 중...';
+  err.style.display = 'none';
+
+  try {
+    const r = await fetch(`${API}?action=login&id=${encodeURIComponent(id)}&pw=${encodeURIComponent(pw)}`);
+    const data = await r.json();
+
+    if (data.ok) {
+      localStorage.setItem('ch_token',  data.token);
+      localStorage.setItem('ch_role',   data.role);
+      localStorage.setItem('ch_branch', data.branch);
+      localStorage.setItem('ch_name',   data.name);
+      location.href = 'dashboard.html';
+    } else {
+      showErr(data.error || '로그인 실패');
+    }
+  } catch(e) {
+    showErr('서버 연결 오류. 잠시 후 다시 시도해주세요.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '로그인';
+  }
+}
+
+function showErr(msg) {
+  const err = document.getElementById('errMsg');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+</script>
+</body>
+</html>

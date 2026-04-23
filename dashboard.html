@@ -1,0 +1,707 @@
+<!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
+<!-- dashboard.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 Contract Hub</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+  /* 헤더 */
+  .header { background: #fff; border-bottom: 1px solid #eee; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .header-title { font-size: 16px; font-weight: 600; }
+  .header-user { font-size: 13px; color: #888; display: flex; align-items: center; gap: 12px; }
+  .logout-btn { font-size: 13px; color: #e53e3e; cursor: pointer; background: none; border: none; }
+
+  /* 탭 */
+  .tabs { background: #fff; border-bottom: 1px solid #eee; display: flex; padding: 0 24px; gap: 0; }
+  .tab { padding: 14px 20px; font-size: 14px; font-weight: 500; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+
+  /* 컨텐츠 */
+  .content { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* 카드 */
+  .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid #eee; }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #333; }
+
+  /* 폼 */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 13px; font-weight: 500; color: #555; }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 14px; outline: none; transition: border-color 0.2s;
+    background: #fff; color: #1a1a1a;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: #4f46e5; }
+  .form-group input[readonly] { background: #f9f9f9; color: #888; }
+
+  /* 버튼 */
+  .btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: #4f46e5; color: #fff; }
+  .btn-primary:hover { background: #4338ca; }
+  .btn-secondary { background: #f3f4f6; color: #444; }
+  .btn-secondary:hover { background: #e5e7eb; }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+
+  /* 테이블 */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f8f8f8; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #eee; white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  tr:hover td { background: #fafafa; }
+
+  /* 뱃지 */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 500; }
+  .badge-on     { background: #d1fae5; color: #065f46; }
+  .badge-off    { background: #fee2e2; color: #991b1b; }
+  .badge-sanity { background: #fef3c7; color: #92400e; }
+  .badge-etc    { background: #f3f4f6; color: #374151; }
+
+  /* 검색 */
+  .search-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+  .search-input { padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; flex: 1; max-width: 300px; }
+  .search-input:focus { border-color: #4f46e5; }
+
+  /* 로딩 */
+  .loading { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
+
+  /* 알림 */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; display: none; z-index: 999; }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .content { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">📋 Contract Hub</div>
+  <div class="header-user">
+    <span id="headerUser"></span>
+    <button class="logout-btn" onclick="logout()">로그아웃</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('institutions')">기관 관리</div>
+  <div class="tab" onclick="switchTab('classrooms')">교실 관리</div>
+  <div class="tab" onclick="switchTab('contracts')">계약 정보</div>
+  <div class="tab" id="logTab" onclick="switchTab('logs')" style="display:none">변경 로그</div>
+</div>
+
+<div class="content">
+
+  <!-- 기관 관리 -->
+  <div class="section active" id="sec-institutions">
+    <div class="card">
+      <div class="card-title">기관 등록 / 수정</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>기관ID <span style="color:#e53e3e">*</span></label>
+          <input id="f-기관ID" placeholder="예: dgbom">
+        </div>
+        <div class="form-group">
+          <label>기관명 <span style="color:#e53e3e">*</span></label>
+          <input id="f-기관명" placeholder="예: 동그라미봄 어린이집">
+        </div>
+        <div class="form-group">
+          <label>고객표시명</label>
+          <input id="f-고객표시명" placeholder="앱에 표시될 이름">
+        </div>
+        <div class="form-group">
+          <label>업체명(총판)</label>
+          <input id="f-업체명" placeholder="총판명">
+        </div>
+        <div class="form-group">
+          <label>담당지사</label>
+          <select id="f-담당지사">
+            <option value="">선택</option>
+            <option>한마음교육</option><option>뉴믹스에듀</option><option>동대구동심</option>
+            <option>센스교육</option><option>한결교육</option><option>디렉토리</option>
+            <option>5월5일</option><option>용인동심</option><option>즐거운교육</option>
+            <option>세모에듀</option><option>(주)더바론에듀테인먼트</option><option>아이행복EDU</option>
+            <option>문화사</option><option>전주동심</option><option>위드원에듀</option>
+            <option>동심에드피아</option><option>POC</option><option>조이에듀</option>
+            <option>다온시스템</option><option>오월오일</option><option>원주국민</option>
+            <option>차일드</option><option>수원센스</option><option>한결교육 꿈드림</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>주소_시도</label>
+          <select id="f-주소_시도">
+            <option value="">선택</option>
+            <option>서울</option><option>경기</option><option>인천</option>
+            <option>부산</option><option>대구</option><option>광주</option>
+            <option>대전</option><option>울산</option><option>세종</option>
+            <option>강원</option><option>충북</option><option>충남</option>
+            <option>전북</option><option>전남</option><option>경북</option>
+            <option>경남</option><option>제주</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>주소_상세</label>
+          <input id="f-주소_상세" placeholder="나머지 주소">
+        </div>
+        <div class="form-group">
+          <label>원장님성함</label>
+          <input id="f-원장님성함">
+        </div>
+        <div class="form-group">
+          <label>원장님연락처</label>
+          <input id="f-원장님연락처" placeholder="010-0000-0000">
+        </div>
+        <div class="form-group">
+          <label>평균원아수</label>
+          <input id="f-평균원아수" type="number" placeholder="0">
+        </div>
+        <div class="form-group full">
+          <label>비고</label>
+          <textarea id="f-비고" rows="2" style="resize:vertical"></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetInstitutionForm()">초기화</button>
+        <button class="btn btn-primary" onclick="saveInstitution()">저장</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">기관 목록</div>
+      <div class="search-row">
+        <input class="search-input" id="inst-search" placeholder="기관명 또는 기관ID 검색" oninput="filterInstitutions()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>기관ID</th><th>기관명</th><th>담당지사</th>
+              <th>시도</th><th>원장님</th><th>연락처</th><th>등록일</th><th>수정</th>
+            </tr>
+          </thead>
+          <tbody id="inst-tbody">
+            <tr><td colspan="8" class="loading">데이터 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 교실 관리 -->
+  <div class="section" id="sec-classrooms">
+    <div class="card">
+      <div class="card-title">교실 등록 / 수정</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>siteID <span style="color:#e53e3e">*</span></label>
+          <input id="fc-siteID" placeholder="예: dgbom_1226" oninput="autoFillGwanID()">
+        </div>
+        <div class="form-group">
+          <label>기관ID (자동)</label>
+          <input id="fc-기관ID" readonly>
+        </div>
+        <div class="form-group">
+          <label>교실명</label>
+          <input id="fc-교실명" placeholder="예: 장미반">
+        </div>
+        <div class="form-group">
+          <label>서비스시작일</label>
+          <input id="fc-서비스시작일" type="date">
+        </div>
+        <div class="form-group">
+          <label>서비스종료일</label>
+          <input id="fc-서비스종료일" type="date">
+        </div>
+        <div class="form-group">
+          <label>설치담당자</label>
+          <input id="fc-설치담당자">
+        </div>
+        <div class="form-group">
+          <label>설치담당자연락처</label>
+          <input id="fc-설치담당자연락처" placeholder="010-0000-0000">
+        </div>
+        <div class="form-group">
+          <label>설치업체</label>
+          <input id="fc-설치업체">
+        </div>
+        <div class="form-group">
+          <label>사전점검일시</label>
+          <input id="fc-사전점검일시" type="datetime-local">
+        </div>
+        <div class="form-group">
+          <label>설치확정일시</label>
+          <input id="fc-설치확정일시" type="datetime-local">
+        </div>
+        <div class="form-group">
+          <label>비상대피도수령</label>
+          <select id="fc-비상대피도수령">
+            <option value="">선택</option>
+            <option>수령</option><option>미수령</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>담당선생님연락처</label>
+          <input id="fc-담당선생님연락처" placeholder="010-0000-0000">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetClassroomForm()">초기화</button>
+        <button class="btn btn-primary" onclick="saveClassroom()">저장</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">교실 목록</div>
+      <div class="search-row">
+        <input class="search-input" id="cls-search" placeholder="siteID 또는 기관ID 검색" oninput="filterClassrooms()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>siteID</th><th>기관ID</th><th>교실명</th>
+              <th>서비스시작일</th><th>서비스종료일</th>
+              <th>OMS 상태</th><th>OMS 요일</th><th>수정</th>
+            </tr>
+          </thead>
+          <tbody id="cls-tbody">
+            <tr><td colspan="8" class="loading">데이터 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 계약 정보 -->
+  <div class="section" id="sec-contracts">
+    <div class="card">
+      <div class="card-title">계약 등록 / 수정</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>기관ID <span style="color:#e53e3e">*</span></label>
+          <input id="fct-기관ID" placeholder="예: dgbom">
+        </div>
+        <div class="form-group">
+          <label>계약일자</label>
+          <input id="fct-계약일자" type="date">
+        </div>
+        <div class="form-group">
+          <label>계약시작일</label>
+          <input id="fct-계약시작일" type="date">
+        </div>
+        <div class="form-group">
+          <label>계약종료일</label>
+          <input id="fct-계약종료일" type="date">
+        </div>
+        <div class="form-group">
+          <label>계약기간</label>
+          <select id="fct-계약기간">
+            <option value="">선택</option>
+            <option>6개월</option><option>12개월</option>
+            <option>24개월</option><option>36개월</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>부모님서비스</label>
+          <select id="fct-부모님서비스">
+            <option value="">선택</option>
+            <option>포함</option><option>미포함</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>admin_등록일</label>
+          <input id="fct-admin_등록일" type="date">
+        </div>
+        <div class="form-group full">
+          <label>비고</label>
+          <textarea id="fct-비고" rows="2" style="resize:vertical"></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetContractForm()">초기화</button>
+        <button class="btn btn-primary" onclick="saveContract()">저장</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">계약 목록</div>
+      <div class="search-row">
+        <input class="search-input" id="ct-search" placeholder="기관ID 검색" oninput="filterContracts()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>기관ID</th><th>계약일자</th><th>계약시작일</th>
+              <th>계약종료일</th><th>계약기간</th><th>부모님서비스</th><th>수정</th>
+            </tr>
+          </thead>
+          <tbody id="ct-tbody">
+            <tr><td colspan="7" class="loading">데이터 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 변경 로그 -->
+  <div class="section" id="sec-logs">
+    <div class="card">
+      <div class="card-title">변경 이력</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>변경일시</th><th>처리자</th><th>대상</th>
+              <th>기관ID</th><th>siteID</th><th>항목</th><th>변경전</th><th>변경후</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody">
+            <tr><td colspan="8" class="loading">데이터 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API    = 'https://script.google.com/macros/s/AKfycbx7SNtdVTDbe66mXwcU-Fc_rrZrsC1t4NLNKsyU1cOu8gQEFRlPEqr9-cRtwOsbq1tp9w/exec';
+const token  = localStorage.getItem('ch_token');
+const role   = localStorage.getItem('ch_role');
+const branch = localStorage.getItem('ch_branch');
+const name   = localStorage.getItem('ch_name');
+
+if (!token) location.href = 'index.html';
+
+document.getElementById('headerUser').textContent =
+  `${name} (${role === 'branch' ? branch : role})`;
+
+if (role !== 'branch') {
+  document.getElementById('logTab').style.display = 'block';
+}
+
+// ==============================
+// 탭 전환
+// ==============================
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('sec-' + tab).classList.add('active');
+
+  if (tab === 'institutions' && !window._instLoaded) loadInstitutions();
+  if (tab === 'classrooms'   && !window._clsLoaded)  loadClassrooms();
+  if (tab === 'contracts'    && !window._ctLoaded)    loadContracts();
+  if (tab === 'logs'         && !window._logLoaded)   loadLogs();
+}
+
+// ==============================
+// 기관 목록
+// ==============================
+let instData = [];
+async function loadInstitutions() {
+  try {
+    const r = await fetch(`${API}?action=getInstitutions&token=${token}`);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    instData = d.data;
+    renderInstitutions(instData);
+    window._instLoaded = true;
+  } catch(e) { showToast('기관 데이터 오류: ' + e.message); }
+}
+
+function renderInstitutions(data) {
+  const tb = document.getElementById('inst-tbody');
+  if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="loading">데이터 없음</td></tr>'; return; }
+  tb.innerHTML = data.map(r => `
+    <tr>
+      <td>${r['기관ID']||''}</td>
+      <td>${r['기관명']||''}</td>
+      <td>${r['담당지사']||''}</td>
+      <td>${r['주소_시도']||''}</td>
+      <td>${r['원장님성함']||''}</td>
+      <td>${r['원장님연락처']||''}</td>
+      <td>${r['등록일']||''}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editInstitution('${r['기관ID']}')">수정</button></td>
+    </tr>
+  `).join('');
+}
+
+function filterInstitutions() {
+  const q = document.getElementById('inst-search').value.toLowerCase();
+  renderInstitutions(instData.filter(r =>
+    (r['기관명']||'').toLowerCase().includes(q) ||
+    (r['기관ID']||'').toLowerCase().includes(q)
+  ));
+}
+
+function editInstitution(id) {
+  const r = instData.find(x => x['기관ID'] === id);
+  if (!r) return;
+  ['기관ID','기관명','고객표시명','업체명','담당지사','주소_시도','주소_상세',
+   '원장님성함','원장님연락처','평균원아수','비고'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if (el) el.value = r[k] || '';
+  });
+  switchTabDirect('institutions');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function saveInstitution() {
+  const data = {};
+  ['기관ID','기관명','고객표시명','업체명','담당지사','주소_시도','주소_상세',
+   '원장님성함','원장님연락처','평균원아수','비고'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if (el) data[k] = el.value.trim();
+  });
+  if (!data['기관ID'] || !data['기관명']) { showToast('기관ID와 기관명은 필수입니다.'); return; }
+  await postData('saveInstitution', data);
+  window._instLoaded = false;
+  loadInstitutions();
+  resetInstitutionForm();
+}
+
+function resetInstitutionForm() {
+  ['기관ID','기관명','고객표시명','업체명','담당지사','주소_시도','주소_상세',
+   '원장님성함','원장님연락처','평균원아수','비고'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if (el) el.value = '';
+  });
+}
+
+// ==============================
+// 교실 목록
+// ==============================
+let clsData = [];
+async function loadClassrooms() {
+  try {
+    const r = await fetch(`${API}?action=getClassrooms&token=${token}`);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    clsData = d.data;
+    renderClassrooms(clsData);
+    window._clsLoaded = true;
+  } catch(e) { showToast('교실 데이터 오류: ' + e.message); }
+}
+
+function renderClassrooms(data) {
+  const tb = document.getElementById('cls-tbody');
+  if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="loading">데이터 없음</td></tr>'; return; }
+  tb.innerHTML = data.map(r => `
+    <tr>
+      <td>${r['siteID']||''}</td>
+      <td>${r['기관ID']||''}</td>
+      <td>${r['교실명']||''}</td>
+      <td>${r['서비스시작일']||''}</td>
+      <td>${r['서비스종료일']||''}</td>
+      <td>${badgeStatus(r['OMS_상태'])}</td>
+      <td>${r['OMS_서비스요일']||''}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editClassroom('${r['siteID']}')">수정</button></td>
+    </tr>
+  `).join('');
+}
+
+function filterClassrooms() {
+  const q = document.getElementById('cls-search').value.toLowerCase();
+  renderClassrooms(clsData.filter(r =>
+    (r['siteID']||'').toLowerCase().includes(q) ||
+    (r['기관ID']||'').toLowerCase().includes(q)
+  ));
+}
+
+function autoFillGwanID() {
+  const siteID = document.getElementById('fc-siteID').value.trim();
+  document.getElementById('fc-기관ID').value = siteID.includes('_') ? siteID.split('_')[0] : '';
+}
+
+function editClassroom(id) {
+  const r = clsData.find(x => x['siteID'] === id);
+  if (!r) return;
+  ['siteID','기관ID','교실명','서비스시작일','서비스종료일','설치담당자',
+   '설치담당자연락처','설치업체','사전점검일시','설치확정일시','비상대피도수령','담당선생님연락처'].forEach(k => {
+    const el = document.getElementById('fc-' + k);
+    if (el) el.value = r[k] || '';
+  });
+  switchTabDirect('classrooms');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function saveClassroom() {
+  const data = {};
+  ['siteID','교실명','서비스시작일','서비스종료일','설치담당자',
+   '설치담당자연락처','설치업체','사전점검일시','설치확정일시','비상대피도수령','담당선생님연락처'].forEach(k => {
+    const el = document.getElementById('fc-' + k);
+    if (el) data[k] = el.value.trim();
+  });
+  if (!data['siteID']) { showToast('siteID는 필수입니다.'); return; }
+  await postData('saveClassroom', data);
+  window._clsLoaded = false;
+  loadClassrooms();
+  resetClassroomForm();
+}
+
+function resetClassroomForm() {
+  ['siteID','기관ID','교실명','서비스시작일','서비스종료일','설치담당자',
+   '설치담당자연락처','설치업체','사전점검일시','설치확정일시','비상대피도수령','담당선생님연락처'].forEach(k => {
+    const el = document.getElementById('fc-' + k);
+    if (el) el.value = '';
+  });
+}
+
+// ==============================
+// 계약 목록
+// ==============================
+let ctData = [];
+async function loadContracts() {
+  try {
+    const r = await fetch(`${API}?action=getContracts&token=${token}`);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    ctData = d.data;
+    renderContracts(ctData);
+    window._ctLoaded = true;
+  } catch(e) { showToast('계약 데이터 오류: ' + e.message); }
+}
+
+function renderContracts(data) {
+  const tb = document.getElementById('ct-tbody');
+  if (!data.length) { tb.innerHTML = '<tr><td colspan="7" class="loading">데이터 없음</td></tr>'; return; }
+  tb.innerHTML = data.map(r => `
+    <tr>
+      <td>${r['기관ID']||''}</td>
+      <td>${r['계약일자']||''}</td>
+      <td>${r['계약시작일']||''}</td>
+      <td>${r['계약종료일']||''}</td>
+      <td>${r['계약기간']||''}</td>
+      <td>${r['부모님서비스']||''}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editContract('${r['기관ID']}')">수정</button></td>
+    </tr>
+  `).join('');
+}
+
+function filterContracts() {
+  const q = document.getElementById('ct-search').value.toLowerCase();
+  renderContracts(ctData.filter(r => (r['기관ID']||'').toLowerCase().includes(q)));
+}
+
+function editContract(id) {
+  const r = ctData.find(x => x['기관ID'] === id);
+  if (!r) return;
+  ['기관ID','계약일자','계약시작일','계약종료일','계약기간','부모님서비스','admin_등록일','비고'].forEach(k => {
+    const el = document.getElementById('fct-' + k);
+    if (el) el.value = r[k] || '';
+  });
+  switchTabDirect('contracts');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function saveContract() {
+  const data = {};
+  ['기관ID','계약일자','계약시작일','계약종료일','계약기간','부모님서비스','admin_등록일','비고'].forEach(k => {
+    const el = document.getElementById('fct-' + k);
+    if (el) data[k] = el.value.trim();
+  });
+  if (!data['기관ID']) { showToast('기관ID는 필수입니다.'); return; }
+  await postData('saveContract', data);
+  window._ctLoaded = false;
+  loadContracts();
+  resetContractForm();
+}
+
+function resetContractForm() {
+  ['기관ID','계약일자','계약시작일','계약종료일','계약기간','부모님서비스','admin_등록일','비고'].forEach(k => {
+    const el = document.getElementById('fct-' + k);
+    if (el) el.value = '';
+  });
+}
+
+// ==============================
+// 변경 로그
+// ==============================
+async function loadLogs() {
+  try {
+    const r = await fetch(`${API}?action=getLogs&token=${token}`);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    const tb = document.getElementById('log-tbody');
+    if (!d.data.length) { tb.innerHTML = '<tr><td colspan="8" class="loading">로그 없음</td></tr>'; return; }
+    tb.innerHTML = d.data.map(r => `
+      <tr>
+        <td>${r['변경일시']||''}</td>
+        <td>${r['처리자']||''}</td>
+        <td>${r['대상시트']||''}</td>
+        <td>${r['기관ID']||''}</td>
+        <td>${r['siteID']||''}</td>
+        <td>${r['변경항목']||''}</td>
+        <td style="color:#888">${r['변경전값']||''}</td>
+        <td style="color:#4f46e5">${r['변경후값']||''}</td>
+      </tr>
+    `).join('');
+    window._logLoaded = true;
+  } catch(e) { showToast('로그 오류: ' + e.message); }
+}
+
+// ==============================
+// 공통 유틸
+// ==============================
+async function postData(action, data) {
+  try {
+    await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ action, token, data })
+    });
+    showToast('저장되었습니다.');
+  } catch(e) {
+    showToast('저장 오류: ' + e.message);
+  }
+}
+
+function badgeStatus(status) {
+  if (!status) return '<span class="badge badge-etc">-</span>';
+  const s = String(status).toUpperCase();
+  if (s === 'ON' || s === 'APPROVED') return `<span class="badge badge-on">${status}</span>`;
+  if (s === 'OFF') return `<span class="badge badge-off">${status}</span>`;
+  if (s.includes('SANITY')) return `<span class="badge badge-sanity">${status}</span>`;
+  return `<span class="badge badge-etc">${status}</span>`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function switchTabDirect(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const tabs = ['institutions','classrooms','contracts','logs'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + tab).classList.add('active');
+}
+
+function logout() {
+  localStorage.clear();
+  location.href = 'index.html';
+}
+
+// 초기 로딩
+loadInstitutions();
+</script>
+</body>
+</html>

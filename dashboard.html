@@ -11,7 +11,6 @@
   :root {
     --primary: #1a3a6b;
     --primary-light: #2563eb;
-    --primary-pale: #eff6ff;
     --sidebar-w: 220px;
     --header-h: 60px;
     --bottombar-h: 60px;
@@ -58,29 +57,38 @@
   .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
   .card-title { font-size: 15px; font-weight: 700; }
 
-  /* 진행단계 바 */
-  .stage-wrap { display: flex; align-items: center; gap: 0; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; }
-  .stage-item { display: flex; align-items: center; flex-shrink: 0; }
-  .stage-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 2px solid var(--border); background: var(--card); color: var(--text-hint); flex-shrink: 0; }
-  .stage-dot.done { background: var(--primary); border-color: var(--primary); color: #fff; }
-  .stage-dot.current { background: var(--primary-light); border-color: var(--primary-light); color: #fff; }
-  .stage-label { font-size: 11px; color: var(--text-hint); margin: 0 6px; white-space: nowrap; }
-  .stage-label.done { color: var(--primary); font-weight: 600; }
-  .stage-label.current { color: var(--primary-light); font-weight: 700; }
-  .stage-line { width: 24px; height: 2px; background: var(--border); flex-shrink: 0; }
-  .stage-line.done { background: var(--primary); }
+  /* 필터 */
+  .filter-card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 20px; margin-bottom: 12px; }
+  .filter-label { font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { padding: 6px 14px; border-radius: 99px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: #f8fafc; color: var(--text-sub); cursor: pointer; transition: all 0.15s; }
+  .pill:hover { border-color: var(--primary-light); color: var(--primary-light); }
+  .pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .filter-result { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+  .filter-count { font-size: 13px; color: var(--text-sub); }
+  .filter-count strong { color: var(--text); }
+  .reset-btn { font-size: 13px; color: var(--text-hint); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+  .reset-btn:hover { color: var(--text-sub); background: #f1f5f9; }
 
-  /* 기관 현황 카드 */
-  .inst-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 16px; }
+  /* 기관 카드 */
+  .inst-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 16px; }
   .inst-card:hover { border-color: var(--primary-light); box-shadow: 0 2px 12px rgba(37,99,235,0.08); }
-  .inst-card.tmp { border-left: 3px solid #f59e0b; }
-  .inst-badge-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; flex: 1; min-width: 0; }
+  .inst-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
   .inst-name { font-size: 14px; font-weight: 700; color: var(--text); }
   .inst-meta { font-size: 12px; color: var(--text-hint); }
-  .inst-stage-bar { display: flex; gap: 4px; align-items: center; }
+  .inst-stage-bar { display: flex; gap: 4px; align-items: center; margin-top: 8px; }
   .stage-pip { width: 20px; height: 6px; border-radius: 3px; background: var(--border); }
   .stage-pip.done { background: var(--primary); }
   .stage-pip.current { background: var(--primary-light); }
+  .stage-pip.cancel { background: #fca5a5; }
+
+  /* 뱃지 */
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge-on     { background: #d1fae5; color: #065f46; }
+  .badge-off    { background: #fee2e2; color: #991b1b; }
+  .badge-sanity { background: #fef3c7; color: #92400e; }
+  .badge-etc    { background: #f1f5f9; color: #475569; }
   .stage-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
   .tag-1 { background: #fef3c7; color: #92400e; }
   .tag-2 { background: #dbeafe; color: #1e40af; }
@@ -88,13 +96,27 @@
   .tag-4 { background: #d1fae5; color: #065f46; }
   .tag-5 { background: #d1fae5; color: #065f46; }
   .tag-6 { background: #0f172a; color: #fff; }
-  .tag-tmp { background: #fef3c7; color: #92400e; }
+  .tag-7 { background: #fee2e2; color: #991b1b; }
+  .tag-tmp { background: #fef3c7; color: #92400e; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+
+  /* 진행단계 바 */
+  .stage-wrap { display: flex; align-items: center; gap: 0; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; }
+  .stage-item { display: flex; align-items: center; flex-shrink: 0; }
+  .stage-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 2px solid var(--border); background: var(--card); color: var(--text-hint); flex-shrink: 0; }
+  .stage-dot.done { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .stage-dot.current { background: var(--primary-light); border-color: var(--primary-light); color: #fff; }
+  .stage-dot.cancel { background: #ef4444; border-color: #ef4444; color: #fff; }
+  .stage-label { font-size: 11px; color: var(--text-hint); margin: 0 6px; white-space: nowrap; }
+  .stage-label.done { color: var(--primary); font-weight: 600; }
+  .stage-label.current { color: var(--primary-light); font-weight: 700; }
+  .stage-line { width: 24px; height: 2px; background: var(--border); flex-shrink: 0; }
+  .stage-line.done { background: var(--primary); }
 
   /* 기관 상세 */
   .detail-back { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); cursor: pointer; margin-bottom: 20px; background: none; border: none; font-family: inherit; }
   .detail-back:hover { color: var(--primary); }
-  .confirm-id-box { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .confirm-id-box input { flex: 1; padding: 8px 12px; border: 1px solid #fcd34d; border-radius: 8px; font-size: 14px; outline: none; }
+  .confirm-id-box { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .confirm-id-box input { flex: 1; min-width: 140px; padding: 8px 12px; border: 1px solid #fcd34d; border-radius: 8px; font-size: 14px; outline: none; }
   .confirm-id-box input:focus { border-color: var(--primary-light); }
 
   /* 폼 */
@@ -120,8 +142,7 @@
   .btn-row { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
 
   /* 검색 */
-  .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
-  .search-input { padding: 9px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; flex: 1; max-width: 320px; background: #f8fafc; transition: border-color 0.2s; }
+  .search-input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; background: #f8fafc; transition: border-color 0.2s; font-family: inherit; }
   .search-input:focus { border-color: var(--primary-light); background: #fff; }
 
   /* 테이블 */
@@ -131,13 +152,6 @@
   td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #f8fafc; }
-
-  /* 뱃지 */
-  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
-  .badge-on     { background: #d1fae5; color: #065f46; }
-  .badge-off    { background: #fee2e2; color: #991b1b; }
-  .badge-sanity { background: #fef3c7; color: #92400e; }
-  .badge-etc    { background: #f1f5f9; color: #475569; }
 
   /* 빈 상태 */
   .empty { text-align: center; padding: 48px 20px; color: var(--text-hint); font-size: 14px; }
@@ -159,16 +173,16 @@
     .topbar { padding: 0 16px; }
     .content { padding: 16px; }
     .form-grid { grid-template-columns: 1fr; }
+    .filter-grid { grid-template-columns: 1fr; }
     .card { padding: 16px; border-radius: 12px; }
     .toast { bottom: calc(var(--bottombar-h) + 12px); right: 12px; left: 12px; }
-    .search-input { max-width: 100%; }
     th, td { padding: 10px; }
-    .stage-wrap { gap: 0; }
   }
   @media (max-width: 375px) {
     .content { padding: 12px; }
     .card { padding: 14px; }
     .form-group input, .form-group select { font-size: 16px; }
+    .pill { font-size: 12px; padding: 5px 10px; }
   }
 </style>
 </head>
@@ -208,20 +222,72 @@
   </div>
   <div class="content">
 
-    <!-- 전체 현황 (본사) -->
+    <!-- 전체 현황 -->
     <div class="section" id="sec-overview">
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">전체 기관 현황</div>
-        </div>
-        <div class="search-row">
-          <input class="search-input" id="ov-search" placeholder="기관명 또는 기관ID 검색" oninput="filterOverview()">
+        <div class="card-header"><div class="card-title">전체 기관 현황</div></div>
+        <div class="search-input-wrap" style="margin-bottom:16px">
+          <input class="search-input" id="ov-search" placeholder="기관명 또는 centerID 검색" oninput="applyFilters()">
         </div>
         <div id="ov-list"><div class="empty">데이터 불러오는 중...</div></div>
       </div>
     </div>
 
-    <!-- 기관 상세 (본사) -->
+    <!-- 필터 -->
+    <div class="section" id="sec-filter">
+
+      <div class="filter-card">
+        <div class="filter-label">검색</div>
+        <input class="search-input" id="f-search" placeholder="기관명 또는 centerID" oninput="applyFilters()">
+      </div>
+
+      <div class="filter-card">
+        <div class="filter-label">진행단계</div>
+        <div class="pill-group" id="stagePills">
+          <button class="pill active" data-stage="all" onclick="togglePill(this, 'stage')">전체</button>
+          <button class="pill" data-stage="1" onclick="togglePill(this, 'stage')">계약</button>
+          <button class="pill" data-stage="2" onclick="togglePill(this, 'stage')">Admin 등록</button>
+          <button class="pill" data-stage="3" onclick="togglePill(this, 'stage')">siteID 부여</button>
+          <button class="pill" data-stage="4" onclick="togglePill(this, 'stage')">설치 완료</button>
+          <button class="pill" data-stage="5" onclick="togglePill(this, 'stage')">업로드 확인</button>
+          <button class="pill" data-stage="6" onclick="togglePill(this, 'stage')">서비스 오픈</button>
+          <button class="pill" data-stage="7" onclick="togglePill(this, 'stage')">취소</button>
+        </div>
+      </div>
+
+      <div class="filter-grid">
+        <div class="filter-card" style="margin-bottom:0">
+          <div class="filter-label">담당지사</div>
+          <select id="f-jisa" onchange="applyFilters()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:#f8fafc;outline:none;font-family:inherit;">
+            <option value="">전체</option>
+          </select>
+        </div>
+        <div class="filter-card" style="margin-bottom:0">
+          <div class="filter-label">시도</div>
+          <select id="f-sido" onchange="applyFilters()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:#f8fafc;outline:none;font-family:inherit;">
+            <option value="">전체</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-card" style="margin-top:12px">
+        <div class="filter-label">임시ID 여부</div>
+        <div class="pill-group" id="tmpPills">
+          <button class="pill active" data-tmp="all" onclick="togglePill(this, 'tmp')">전체</button>
+          <button class="pill" data-tmp="Y" onclick="togglePill(this, 'tmp')">임시ID만</button>
+          <button class="pill" data-tmp="N" onclick="togglePill(this, 'tmp')">확정ID만</button>
+        </div>
+      </div>
+
+      <div class="filter-result">
+        <span class="filter-count">필터 결과: <strong id="filterCount">0건</strong></span>
+        <button class="reset-btn" onclick="resetFilters()">초기화</button>
+      </div>
+
+      <div id="filter-list"></div>
+    </div>
+
+    <!-- 기관 상세 -->
     <div class="section" id="sec-detail">
       <button class="detail-back" onclick="goBack()">← 목록으로</button>
       <div id="detail-content"></div>
@@ -230,9 +296,7 @@
     <!-- 계약 입력 -->
     <div class="section" id="sec-contract">
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">계약 정보 입력</div>
-        </div>
+        <div class="card-header"><div class="card-title">계약 정보 입력</div></div>
         <div class="form-grid">
           <div class="form-group full">
             <label>기관명 *</label>
@@ -325,7 +389,7 @@
             <thead>
               <tr>
                 <th>변경 일시</th><th>처리자</th><th>대상</th>
-                <th>기관ID</th><th>항목</th><th>변경 전</th><th>변경 후</th>
+                <th>centerID</th><th>항목</th><th>변경 전</th><th>변경 후</th>
               </tr>
             </thead>
             <tbody id="log-tbody">
@@ -350,41 +414,40 @@ const name   = localStorage.getItem('ch_name');
 
 if (!token) location.href = 'index.html';
 
-// ==============================
-// 메뉴 구성 (역할별)
-// ==============================
 const MENUS = {
   admin: [
-    { id: 'overview',  icon: '🏠', label: '전체 현황' },
-    { id: 'contract',  icon: '✍️', label: '계약 입력' },
-    { id: 'logs',      icon: '🕓', label: '변경 로그' },
+    { id: 'overview', icon: '🏠', label: '전체 현황' },
+    { id: 'filter',   icon: '🔍', label: '필터 검색' },
+    { id: 'contract', icon: '✍️', label: '계약 입력' },
+    { id: 'logs',     icon: '🕓', label: '변경 로그' },
   ],
   bizteam: [
-    { id: 'overview',  icon: '🏠', label: '전체 현황' },
-    { id: 'contract',  icon: '✍️', label: '계약 입력' },
-    { id: 'logs',      icon: '🕓', label: '변경 로그' },
+    { id: 'overview', icon: '🏠', label: '전체 현황' },
+    { id: 'filter',   icon: '🔍', label: '필터 검색' },
+    { id: 'contract', icon: '✍️', label: '계약 입력' },
+    { id: 'logs',     icon: '🕓', label: '변경 로그' },
   ],
   branch: [
-    { id: 'contract',  icon: '✍️', label: '계약 입력' },
-    { id: 'overview',  icon: '🏫', label: '내 기관 현황' },
+    { id: 'contract', icon: '✍️', label: '계약 입력' },
+    { id: 'overview', icon: '🏫', label: '내 기관 현황' },
+    { id: 'filter',   icon: '🔍', label: '필터 검색' },
   ],
 };
 
 const TAB_META = {
   overview: { title: role === 'branch' ? '내 기관 현황' : '전체 현황', sub: '기관별 진행 단계를 확인합니다' },
+  filter:   { title: '필터 검색', sub: '조건별로 기관을 검색합니다' },
   contract: { title: '계약 입력', sub: '신규 계약 기관 정보를 입력합니다' },
   logs:     { title: '변경 로그', sub: '데이터 변경 이력을 확인합니다' },
   detail:   { title: '기관 상세', sub: '기관 상세 정보 및 단계 관리' },
 };
 
-const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈'];
+const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];
 
-// 유저 정보
 document.getElementById('userName').textContent = name || '';
 document.getElementById('userRole').textContent = role === 'branch' ? branch : role;
 document.getElementById('userAvatar').textContent = (name || 'U').charAt(0).toUpperCase();
 
-// 메뉴 렌더링
 const menus = MENUS[role] || MENUS.branch;
 const sideNav   = document.getElementById('sideNav');
 const bottomNav = document.getElementById('bottomNav');
@@ -405,7 +468,6 @@ menus.forEach(m => {
   bottomNav.appendChild(bBtn);
 });
 
-// 첫 화면
 switchTab(menus[0].id);
 
 // ==============================
@@ -416,17 +478,18 @@ function switchTab(tab) {
   document.querySelectorAll(`[data-tab="${tab}"]`).forEach(t => t.classList.add('active'));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + tab).classList.add('active');
-
   const meta = TAB_META[tab] || {};
   document.getElementById('topbarTitle').textContent = meta.title || '';
   document.getElementById('topbarSub').textContent   = meta.sub   || '';
 
-  if (tab === 'overview' && !window._ovLoaded)   loadOverview();
-  if (tab === 'logs'     && !window._logLoaded)  loadLogs();
+  if (tab === 'overview' && !window._ovLoaded)  loadOverview();
+  if (tab === 'filter'   && !window._ovLoaded)  loadOverview();
+  if (tab === 'logs'     && !window._logLoaded) loadLogs();
 }
 
 function goBack() {
-  switchTab('overview');
+  const prev = window._prevTab || 'overview';
+  switchTab(prev);
 }
 
 // ==============================
@@ -449,7 +512,7 @@ function fmtDate(val) {
 }
 
 // ==============================
-// 전체 현황
+// 전체 현황 + 필터 공용 데이터
 // ==============================
 let ovData = [];
 
@@ -460,47 +523,143 @@ async function loadOverview() {
     if (!d.ok) throw new Error(d.error);
     ovData = d.data;
     renderOverview(ovData);
+    initFilterOptions();
+    applyFilters();
     window._ovLoaded = true;
   } catch(e) { showToast('데이터 오류: ' + e.message); }
 }
 
+// 필터 드롭다운 옵션 동적 생성
+function initFilterOptions() {
+  const jisaSet = new Set();
+  const sidoSet = new Set();
+  ovData.forEach(r => {
+    if (r['담당지사']) jisaSet.add(r['담당지사']);
+    if (r['주소_시도']) sidoSet.add(r['주소_시도']);
+  });
+
+  const jisaSel = document.getElementById('f-jisa');
+  jisaSel.innerHTML = '<option value="">전체</option>';
+  [...jisaSet].sort().forEach(v => {
+    const o = document.createElement('option');
+    o.value = o.textContent = v;
+    jisaSel.appendChild(o);
+  });
+
+  const sidoSel = document.getElementById('f-sido');
+  sidoSel.innerHTML = '<option value="">전체</option>';
+  [...sidoSet].sort().forEach(v => {
+    const o = document.createElement('option');
+    o.value = o.textContent = v;
+    sidoSel.appendChild(o);
+  });
+}
+
+// ==============================
+// 전체 현황 렌더링
+// ==============================
 function renderOverview(data) {
   const el = document.getElementById('ov-list');
   if (!data.length) { el.innerHTML = '<div class="empty">등록된 기관이 없습니다</div>'; return; }
-
-  el.innerHTML = data.map(r => {
-    const stage   = parseInt(r['진행단계'] || '1');
-    const isTmp   = r['임시ID여부'] === 'Y';
-    const tagClass = `tag-${isTmp ? 'tmp' : stage}`;
-    const tagLabel = isTmp ? '임시ID' : STAGE_LABELS[stage - 1] || '';
-
-    const pips = STAGE_LABELS.map((_, i) => {
-      const cls = i + 1 < stage ? 'done' : i + 1 === stage ? 'current' : '';
-      return `<div class="stage-pip ${cls}"></div>`;
-    }).join('');
-
-    return `
-      <div class="inst-card ${isTmp ? 'tmp' : ''}" onclick="openDetail('${r['기관ID']}')">
-        <div class="inst-badge-wrap">
-          <div class="inst-name">${r['기관명'] || r['기관ID']}</div>
-          <div class="inst-meta">${r['기관ID']} · ${r['담당지사'] || '-'} · ${r['주소_시도'] || '-'}</div>
-          <div class="inst-stage-bar" style="margin-top:6px">${pips}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-          <span class="stage-tag ${tagClass}">${tagLabel}</span>
-          <span style="font-size:11px;color:var(--text-hint)">${fmtDate(r['등록일'])}</span>
-        </div>
-      </div>
-    `;
-  }).join('');
+  el.innerHTML = data.map(r => instCardHTML(r)).join('');
 }
 
-function filterOverview() {
-  const q = document.getElementById('ov-search').value.toLowerCase();
-  renderOverview(ovData.filter(r =>
-    (r['기관명']||'').toLowerCase().includes(q) ||
-    (r['기관ID']||'').toLowerCase().includes(q)
-  ));
+function instCardHTML(r) {
+  const stage  = parseInt(r['진행단계'] || '1');
+  const isTmp  = r['임시ID여부'] === 'Y';
+  const tagCls = `tag-${stage}`;
+  const tagLabel = STAGE_LABELS[stage - 1] || '';
+
+  const pips = STAGE_LABELS.map((_, i) => {
+    const s = i + 1;
+    let cls = '';
+    if (stage === 7) cls = s <= 4 ? 'done' : 'cancel';
+    else cls = s < stage ? 'done' : s === stage ? 'current' : '';
+    return `<div class="stage-pip ${cls}"></div>`;
+  }).join('');
+
+  const tmpBadge = isTmp ? `<span class="tag-tmp">임시ID</span>` : '';
+
+  return `
+    <div class="inst-card" onclick="openDetail('${r['centerID']}')">
+      <div style="flex:1;min-width:0">
+        <div class="inst-name-row">
+          <span class="inst-name">${r['기관명'] || r['centerID']}</span>
+          ${tmpBadge}
+        </div>
+        <div class="inst-meta">${r['centerID']} · ${r['담당지사']||'-'} · ${r['주소_시도']||'-'}</div>
+        <div class="inst-stage-bar">${pips}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <span class="stage-tag ${tagCls}">${tagLabel}</span>
+        <span style="font-size:11px;color:var(--text-hint)">${fmtDate(r['등록일'])}</span>
+      </div>
+    </div>
+  `;
+}
+
+// ==============================
+// 필터
+// ==============================
+let activeStage = 'all';
+let activeTmp   = 'all';
+
+function togglePill(btn, group) {
+  if (group === 'stage') {
+    document.querySelectorAll('#stagePills .pill').forEach(b => b.classList.remove('active'));
+    activeStage = btn.dataset.stage;
+  } else {
+    document.querySelectorAll('#tmpPills .pill').forEach(b => b.classList.remove('active'));
+    activeTmp = btn.dataset.tmp;
+  }
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q     = (document.getElementById('f-search')?.value || document.getElementById('ov-search')?.value || '').toLowerCase();
+  const jisa  = document.getElementById('f-jisa')?.value  || '';
+  const sido  = document.getElementById('f-sido')?.value  || '';
+
+  const filtered = ovData.filter(r => {
+    const matchQ     = !q || (r['기관명']||'').toLowerCase().includes(q) || (r['centerID']||'').toLowerCase().includes(q);
+    const matchStage = activeStage === 'all' || r['진행단계'] === activeStage;
+    const matchJisa  = !jisa || r['담당지사'] === jisa;
+    const matchSido  = !sido || r['주소_시도'] === sido;
+    const matchTmp   = activeTmp === 'all' || r['임시ID여부'] === activeTmp;
+    return matchQ && matchStage && matchJisa && matchSido && matchTmp;
+  });
+
+  // 전체 현황 검색
+  const ovSearch = document.getElementById('ov-search')?.value || '';
+  if (ovSearch) {
+    renderOverview(filtered);
+  }
+
+  // 필터 페이지 결과
+  const countEl = document.getElementById('filterCount');
+  if (countEl) countEl.textContent = `${filtered.length}건`;
+
+  const listEl = document.getElementById('filter-list');
+  if (listEl) {
+    if (!filtered.length) {
+      listEl.innerHTML = '<div class="empty">조건에 맞는 기관이 없습니다</div>';
+    } else {
+      listEl.innerHTML = filtered.map(r => instCardHTML(r)).join('');
+    }
+  }
+}
+
+function resetFilters() {
+  document.getElementById('f-search').value = '';
+  document.getElementById('f-jisa').value   = '';
+  document.getElementById('f-sido').value   = '';
+  activeStage = 'all';
+  activeTmp   = 'all';
+  document.querySelectorAll('#stageFields .pill, #stageFilter .pill, #stageField .pill').forEach(b => b.classList.remove('active'));
+  document.querySelector('#stagePills .pill[data-stage="all"]')?.classList.add('active');
+  document.querySelector('#tmpPills .pill[data-tmp="all"]')?.classList.add('active');
+  applyFilters();
 }
 
 // ==============================
@@ -510,20 +669,18 @@ let currentInst = null;
 let currentCls  = [];
 let currentCt   = null;
 
-async function openDetail(기관ID) {
-  currentInst = ovData.find(x => x['기관ID'] === 기관ID) || null;
+async function openDetail(centerID) {
+  window._prevTab = document.querySelector('.nav-item.active, .bottom-item.active')?.dataset?.tab || 'overview';
+  currentInst = ovData.find(x => x['centerID'] === centerID) || null;
 
-  // 교실 + 계약 병렬 fetch
   const [clsRes, ctRes] = await Promise.all([
-    fetch(`${API}?action=getClassrooms&token=${token}&기관ID=${기관ID}`).then(r => r.json()),
-    fetch(`${API}?action=getContracts&token=${token}&기관ID=${기관ID}`).then(r => r.json()),
+    fetch(`${API}?action=getClassrooms&token=${token}&기관ID=${centerID}`).then(r => r.json()),
+    fetch(`${API}?action=getContracts&token=${token}&기관ID=${centerID}`).then(r => r.json()),
   ]);
   currentCls = clsRes.ok ? clsRes.data : [];
   currentCt  = ctRes.ok && ctRes.data.length ? ctRes.data[0] : null;
 
   renderDetail();
-
-  // 탭 전환 (detail은 메뉴에 없으므로 직접)
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-detail').classList.add('active');
   document.getElementById('topbarTitle').textContent = TAB_META.detail.title;
@@ -537,34 +694,40 @@ function renderDetail() {
   const stage = parseInt(inst['진행단계'] || '1');
   const isTmp = inst['임시ID여부'] === 'Y';
 
-  // 진행단계 바
   const stageBar = STAGE_LABELS.map((label, i) => {
     const s = i + 1;
-    const dotCls   = s < stage ? 'done' : s === stage ? 'current' : '';
-    const lineCls  = s < stage ? 'done' : '';
-    const labelCls = s < stage ? 'done' : s === stage ? 'current' : '';
+    let dotCls   = '';
+    let labelCls = '';
+    let lineCls  = '';
+    if (stage === 7) {
+      dotCls   = s <= 4 ? 'done' : s === 7 ? 'cancel' : '';
+      labelCls = s <= 4 ? 'done' : s === 7 ? 'current' : '';
+      lineCls  = s <= 4 ? 'done' : '';
+    } else {
+      dotCls   = s < stage ? 'done' : s === stage ? 'current' : '';
+      labelCls = s < stage ? 'done' : s === stage ? 'current' : '';
+      lineCls  = s < stage ? 'done' : '';
+    }
     return `
       <div class="stage-item">
-        <div class="stage-dot ${dotCls}">${s < stage ? '✓' : s}</div>
+        <div class="stage-dot ${dotCls}">${s < stage && stage !== 7 ? '✓' : s}</div>
         <span class="stage-label ${labelCls}">${label}</span>
       </div>
       ${i < STAGE_LABELS.length - 1 ? `<div class="stage-line ${lineCls}"></div>` : ''}
     `;
   }).join('');
 
-  // 임시ID 확정 박스
   const confirmBox = isTmp ? `
     <div class="confirm-id-box">
       <div style="flex:1">
         <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ 임시ID 사용 중 — siteID 확정 필요</div>
-        <div style="font-size:12px;color:#92400e">현재: <strong>${inst['기관ID']}</strong></div>
+        <div style="font-size:12px;color:#92400e">현재: <strong>${inst['centerID']}</strong></div>
       </div>
       <input id="newSiteId" placeholder="실제 prefix 입력 (예: dgbom)" style="width:180px">
-      <button class="btn btn-warn btn-sm" onclick="confirmSiteId('${inst['기관ID']}')">확정</button>
+      <button class="btn btn-warn btn-sm" onclick="confirmSiteId('${inst['centerID']}')">확정</button>
     </div>
   ` : '';
 
-  // 교실 목록
   const clsRows = currentCls.length
     ? currentCls.map(c => `
       <tr>
@@ -577,7 +740,6 @@ function renderDetail() {
     `).join('')
     : '<tr><td colspan="5" class="empty">등록된 교실 없음</td></tr>';
 
-  // 계약 정보 요약
   const ctSummary = currentCt ? `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
       <div><span style="color:var(--text-hint)">계약일자</span><br><strong>${fmtDate(currentCt['계약일자'])}</strong></div>
@@ -589,19 +751,22 @@ function renderDetail() {
     </div>
   ` : '<div class="empty" style="padding:20px">계약 정보 없음</div>';
 
-  // 단계 업데이트 버튼 (본사만)
   const stageBtn = role !== 'branch' && stage < 6 ? `
-    <button class="btn btn-primary btn-sm" onclick="advanceStage('${inst['기관ID']}', ${stage + 1})">
-      다음 단계로 → ${STAGE_LABELS[stage] || ''}
+    <button class="btn btn-primary btn-sm" onclick="advanceStage('${inst['centerID']}', ${stage + 1})">
+      다음 단계 → ${STAGE_LABELS[stage] || ''}
     </button>
   ` : '';
+
+  const tmpBadge = isTmp ? `<span class="tag-tmp" style="margin-left:8px">임시ID</span>` : '';
 
   document.getElementById('detail-content').innerHTML = `
     <div class="card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap">
         <div>
-          <div style="font-size:20px;font-weight:800">${inst['기관명']||inst['기관ID']}</div>
-          <div style="font-size:13px;color:var(--text-hint);margin-top:4px">${inst['기관ID']} · ${inst['담당지사']||'-'} · ${inst['주소_시도']||''} ${inst['주소_상세']||''}</div>
+          <div style="font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px">
+            ${inst['기관명']||inst['centerID']}${tmpBadge}
+          </div>
+          <div style="font-size:13px;color:var(--text-hint);margin-top:4px">${inst['centerID']} · ${inst['담당지사']||'-'} · ${inst['주소_시도']||''} ${inst['주소_상세']||''}</div>
           <div style="font-size:13px;color:var(--text-hint);margin-top:2px">원장님: ${inst['원장님성함']||'-'} · ${inst['원장님연락처']||'-'}</div>
         </div>
         ${stageBtn}
@@ -618,7 +783,7 @@ function renderDetail() {
     <div class="card">
       <div class="card-header">
         <div class="card-title">교실 목록</div>
-        ${role !== 'branch' ? `<button class="btn btn-secondary btn-sm" onclick="openAddClassroom('${inst['기관ID']}')">+ 교실 추가</button>` : ''}
+        ${role !== 'branch' ? `<button class="btn btn-secondary btn-sm" onclick="openAddClassroom('${inst['centerID']}')">+ 교실 추가</button>` : ''}
       </div>
       <div class="table-wrap">
         <table>
@@ -639,25 +804,23 @@ async function confirmSiteId(oldId) {
   if (newId.startsWith('tmp_')) { showToast('tmp_ 로 시작하면 안돼요.'); return; }
 
   await postData('confirmSiteId', { oldId, newId }, null);
-  showToast('siteID가 확정되었습니다.');
-
-  // 로컬 데이터 업데이트
-  const idx = ovData.findIndex(x => x['기관ID'] === oldId);
+  const idx = ovData.findIndex(x => x['centerID'] === oldId);
   if (idx > -1) {
-    ovData[idx]['기관ID']     = newId;
-    ovData[idx]['임시ID여부'] = 'N';
-    ovData[idx]['진행단계']   = '3';
+    ovData[idx]['centerID']    = newId;
+    ovData[idx]['임시ID여부']  = 'N';
+    ovData[idx]['진행단계']    = '3';
     currentInst = ovData[idx];
   }
   renderDetail();
+  showToast('siteID가 확정되었습니다.');
 }
 
 // ==============================
 // 단계 진행
 // ==============================
-async function advanceStage(기관ID, newStage) {
-  await postData('updateStage', { 기관ID, stage: newStage }, null);
-  const idx = ovData.findIndex(x => x['기관ID'] === 기관ID);
+async function advanceStage(centerID, newStage) {
+  await postData('updateStage', { 기관ID: centerID, stage: newStage }, null);
+  const idx = ovData.findIndex(x => x['centerID'] === centerID);
   if (idx > -1) {
     ovData[idx]['진행단계'] = String(newStage);
     currentInst = ovData[idx];
@@ -667,9 +830,9 @@ async function advanceStage(기관ID, newStage) {
 }
 
 // ==============================
-// 교실 추가 (인라인 폼)
+// 교실 추가
 // ==============================
-function openAddClassroom(기관ID) {
+function openAddClassroom(centerID) {
   const existing = document.getElementById('add-cls-form');
   if (existing) { existing.remove(); return; }
 
@@ -680,7 +843,7 @@ function openAddClassroom(기관ID) {
     <div class="form-grid">
       <div class="form-group">
         <label>siteID *</label>
-        <input id="add-siteID" placeholder="예: ${기관ID}_1226">
+        <input id="add-siteID" placeholder="예: ${centerID}_1226">
       </div>
       <div class="form-group">
         <label>교실명</label>
@@ -697,25 +860,22 @@ function openAddClassroom(기관ID) {
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary btn-sm" onclick="document.getElementById('add-cls-form').remove()">취소</button>
-      <button class="btn btn-primary btn-sm" onclick="saveNewClassroom('${기관ID}')">저장</button>
+      <button class="btn btn-primary btn-sm" onclick="saveNewClassroom('${centerID}')">저장</button>
     </div>
   `;
-
   document.querySelector('#detail-content .card:last-child').appendChild(form);
 }
 
-async function saveNewClassroom(기관ID) {
+async function saveNewClassroom(centerID) {
   const siteID = (document.getElementById('add-siteID')?.value || '').trim();
   if (!siteID) { showToast('siteID는 필수입니다.'); return; }
-
   const data = {
     siteID,
-    기관ID,
-    교실명:     (document.getElementById('add-교실명')?.value || '').trim(),
+    centerID,
+    교실명:       (document.getElementById('add-교실명')?.value || '').trim(),
     서비스시작일: (document.getElementById('add-서비스시작일')?.value || '').trim(),
     서비스종료일: (document.getElementById('add-서비스종료일')?.value || '').trim(),
   };
-
   await postData('saveClassroom', data, null);
   currentCls.push(data);
   renderDetail();
@@ -725,21 +885,19 @@ async function saveNewClassroom(기관ID) {
 // 계약 입력
 // ==============================
 function previewTmpId() {
-  const 기관명 = document.getElementById('ct-기관명').value.trim();
+  const 기관명  = document.getElementById('ct-기관명').value.trim();
   const preview = document.getElementById('tmpIdPreview');
   if (!기관명) { preview.style.display = 'none'; return; }
-
-  const cleaned = 기관명.replace(/[^가-힣a-zA-Z0-9]/g, '');
-  const romanized = cleaned.substring(0, 6).split('').map(c => {
+  const cleaned    = 기관명.replace(/[^가-힣a-zA-Z0-9]/g, '');
+  const romanized  = cleaned.substring(0, 6).split('').map(c => {
     const code = c.charCodeAt(0);
     if (code >= 0xAC00 && code <= 0xD7A3) {
-      const onset = Math.floor((code - 0xAC00) / 28 / 21);
+      const onset  = Math.floor((code - 0xAC00) / 28 / 21);
       const onsets = ['g','kk','n','d','tt','r','m','b','pp','s','','j','jj','ch','k','t','p','h'];
       return onsets[onset] || 'x';
     }
     return c.toLowerCase();
   }).join('');
-
   preview.textContent = `자동생성 임시ID: tmp_${romanized || 'inst'}_****`;
   preview.style.display = 'block';
 }
@@ -752,8 +910,6 @@ async function saveContract() {
     if (el) data[k] = el.value.trim();
   });
   if (!data['기관명']) { showToast('기관명은 필수입니다.'); return; }
-
-  // 지사 계정은 담당지사 자동 설정
   if (role === 'branch') data['담당지사'] = branch;
 
   await postData('saveContract', data, () => {
@@ -787,7 +943,7 @@ async function loadLogs() {
         <td style="color:var(--text-hint);white-space:nowrap">${fmtDate(r['변경일시'])}</td>
         <td><strong>${r['처리자']||''}</strong></td>
         <td>${r['대상시트']||''}</td>
-        <td>${r['기관ID']||''}</td>
+        <td>${r['centerID'] || r['기관ID']||''}</td>
         <td>${r['변경항목']||''}</td>
         <td style="color:var(--text-hint)">${r['변경전값']||''}</td>
         <td style="color:var(--primary-light);font-weight:600">${r['변경후값']||''}</td>

@@ -1,0 +1,288 @@
+<!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
+<!-- filter.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 Contract Hub — 필터 검색</title>
+<script src="common.js"></script>
+</head>
+<body>
+<script> CH.injectStyle(); </script>
+
+<style>
+  .filter-card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 20px; margin-bottom: 12px; }
+  .filter-label { font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { padding: 6px 14px; border-radius: 99px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: #f8fafc; color: var(--text-sub); cursor: pointer; transition: all 0.15s; }
+  .pill:hover { border-color: var(--primary-light); color: var(--primary-light); }
+  .pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .filter-result { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+  .filter-count { font-size: 13px; color: var(--text-sub); }
+  .filter-count strong { color: var(--text); }
+  .reset-btn { font-size: 13px; color: var(--text-hint); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+  .reset-btn:hover { color: var(--text-sub); background: #f1f5f9; }
+  .inst-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 16px; }
+  .inst-card:hover { border-color: var(--primary-light); box-shadow: 0 2px 12px rgba(37,99,235,0.08); }
+  .inst-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .inst-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .inst-meta { font-size: 12px; color: var(--text-hint); }
+  .inst-stage-bar { display: flex; gap: 4px; align-items: center; margin-top: 8px; }
+  .stage-pip { width: 20px; height: 6px; border-radius: 3px; background: var(--border); }
+  .stage-pip.done { background: var(--primary); }
+  .stage-pip.current { background: var(--primary-light); }
+  .stage-pip.cancel { background: #fca5a5; }
+  .stage-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+  .tag-1 { background: #fef3c7; color: #92400e; }
+  .tag-2 { background: #dbeafe; color: #1e40af; }
+  .tag-3 { background: #ede9fe; color: #5b21b6; }
+  .tag-4 { background: #d1fae5; color: #065f46; }
+  .tag-5 { background: #d1fae5; color: #065f46; }
+  .tag-6 { background: #0f172a; color: #fff; }
+  .tag-7 { background: #fee2e2; color: #991b1b; }
+  .tag-tmp { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #92400e; }
+  .f-select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; background: #f8fafc; outline: none; font-family: inherit; transition: border-color 0.2s; }
+  .f-select:focus { border-color: var(--primary-light); background: #fff; }
+  @media (max-width: 768px) {
+    .filter-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 375px) {
+    .pill { font-size: 12px; padding: 5px 10px; }
+  }
+</style>
+
+<!-- 사이드바 -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">📋</div>
+    <span>Contract Hub</span>
+  </div>
+  <nav class="sidebar-nav" id="sideNav"></nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar"></div>
+      <div>
+        <div class="user-name" id="userName"></div>
+        <div class="user-role" id="userRole"></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="CH.logout()">로그아웃</button>
+  </div>
+</div>
+
+<!-- 모바일 하단 탭바 -->
+<div class="bottombar">
+  <div class="bottombar-inner" id="bottomNav"></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">필터 검색</div>
+      <div class="topbar-sub">조건별로 기관을 검색합니다</div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- 검색 -->
+    <div class="filter-card">
+      <div class="filter-label">검색</div>
+      <input class="search-input" id="f-search" placeholder="기관명 또는 centerID" oninput="applyFilters()">
+    </div>
+
+    <!-- 진행단계 -->
+    <div class="filter-card">
+      <div class="filter-label">진행단계</div>
+      <div class="pill-group" id="stagePills">
+        <button class="pill active" data-stage="all" onclick="togglePill(this,'stage')">전체</button>
+        <button class="pill" data-stage="1" onclick="togglePill(this,'stage')">계약</button>
+        <button class="pill" data-stage="2" onclick="togglePill(this,'stage')">Admin 등록</button>
+        <button class="pill" data-stage="3" onclick="togglePill(this,'stage')">siteID 부여</button>
+        <button class="pill" data-stage="4" onclick="togglePill(this,'stage')">설치 완료</button>
+        <button class="pill" data-stage="5" onclick="togglePill(this,'stage')">업로드 확인</button>
+        <button class="pill" data-stage="6" onclick="togglePill(this,'stage')">서비스 오픈</button>
+        <button class="pill" data-stage="7" onclick="togglePill(this,'stage')">취소</button>
+      </div>
+    </div>
+
+    <!-- 담당지사 + 시도 -->
+    <div class="filter-grid">
+      <div class="filter-card" style="margin-bottom:0">
+        <div class="filter-label">담당지사</div>
+        <select class="f-select" id="f-jisa" onchange="applyFilters()">
+          <option value="">전체</option>
+        </select>
+      </div>
+      <div class="filter-card" style="margin-bottom:0">
+        <div class="filter-label">시도</div>
+        <select class="f-select" id="f-sido" onchange="applyFilters()">
+          <option value="">전체</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 임시ID -->
+    <div class="filter-card" style="margin-top:12px">
+      <div class="filter-label">임시ID 여부</div>
+      <div class="pill-group" id="tmpPills">
+        <button class="pill active" data-tmp="all" onclick="togglePill(this,'tmp')">전체</button>
+        <button class="pill" data-tmp="Y" onclick="togglePill(this,'tmp')">임시ID만</button>
+        <button class="pill" data-tmp="N" onclick="togglePill(this,'tmp')">확정ID만</button>
+      </div>
+    </div>
+
+    <!-- 결과 -->
+    <div class="filter-result">
+      <span class="filter-count">필터 결과: <strong id="filterCount">0건</strong></span>
+      <button class="reset-btn" onclick="resetFilters()">초기화</button>
+    </div>
+
+    <div id="filter-list"><div class="empty">데이터 불러오는 중...</div></div>
+
+  </div>
+</div>
+
+<script>
+if (!CH.requireAuth()) throw new Error('unauthorized');
+CH.renderNav('filter');
+
+const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];
+let ovData      = [];
+let activeStage = 'all';
+let activeTmp   = 'all';
+
+loadData();
+
+async function loadData() {
+  try {
+    const d = await CH.get({ action: 'getInstitutions' });
+    if (!d.ok) throw new Error(d.error);
+    ovData = d.data;
+    initFilterOptions();
+    applyFilters();
+  } catch(e) {
+    document.getElementById('filter-list').innerHTML =
+      `<div class="empty">오류: ${e.message}</div>`;
+  }
+}
+
+// ==============================
+// 필터 드롭다운 동적 생성
+// ==============================
+function initFilterOptions() {
+  const jisaSet = new Set();
+  const sidoSet = new Set();
+  ovData.forEach(r => {
+    if (r['담당지사']) jisaSet.add(r['담당지사']);
+    if (r['주소_시도']) sidoSet.add(r['주소_시도']);
+  });
+
+  const jisaSel = document.getElementById('f-jisa');
+  [...jisaSet].sort().forEach(v => {
+    const o = document.createElement('option');
+    o.value = o.textContent = v;
+    jisaSel.appendChild(o);
+  });
+
+  const sidoSel = document.getElementById('f-sido');
+  [...sidoSet].sort().forEach(v => {
+    const o = document.createElement('option');
+    o.value = o.textContent = v;
+    sidoSel.appendChild(o);
+  });
+}
+
+// ==============================
+// 필터 적용
+// ==============================
+function applyFilters() {
+  const q    = (document.getElementById('f-search')?.value || '').toLowerCase();
+  const jisa = document.getElementById('f-jisa')?.value || '';
+  const sido = document.getElementById('f-sido')?.value || '';
+
+  const filtered = ovData.filter(r => {
+    const matchQ     = !q || (r['기관명']||'').toLowerCase().includes(q) || (r['centerID']||'').toLowerCase().includes(q);
+    const matchStage = activeStage === 'all' || r['진행단계'] === activeStage;
+    const matchJisa  = !jisa || r['담당지사'] === jisa;
+    const matchSido  = !sido || r['주소_시도'] === sido;
+    const matchTmp   = activeTmp === 'all' || r['임시ID여부'] === activeTmp;
+    return matchQ && matchStage && matchJisa && matchSido && matchTmp;
+  });
+
+  document.getElementById('filterCount').textContent = `${filtered.length}건`;
+
+  const listEl = document.getElementById('filter-list');
+  if (!filtered.length) {
+    listEl.innerHTML = '<div class="empty">조건에 맞는 기관이 없습니다</div>';
+    return;
+  }
+  listEl.innerHTML = filtered.map(r => instCardHTML(r)).join('');
+}
+
+function togglePill(btn, group) {
+  if (group === 'stage') {
+    document.querySelectorAll('#stagePills .pill').forEach(b => b.classList.remove('active'));
+    activeStage = btn.dataset.stage;
+  } else {
+    document.querySelectorAll('#tmpPills .pill').forEach(b => b.classList.remove('active'));
+    activeTmp = btn.dataset.tmp;
+  }
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function resetFilters() {
+  document.getElementById('f-search').value = '';
+  document.getElementById('f-jisa').value   = '';
+  document.getElementById('f-sido').value   = '';
+  activeStage = 'all';
+  activeTmp   = 'all';
+  document.querySelector('#stagePills .pill[data-stage="all"]')?.classList.add('active');
+  document.querySelectorAll('#stagePills .pill:not([data-stage="all"])').forEach(b => b.classList.remove('active'));
+  document.querySelector('#tmpPills .pill[data-tmp="all"]')?.classList.add('active');
+  document.querySelectorAll('#tmpPills .pill:not([data-tmp="all"])').forEach(b => b.classList.remove('active'));
+  applyFilters();
+}
+
+// ==============================
+// 기관 카드 HTML
+// ==============================
+function instCardHTML(r) {
+  const stage    = parseInt(r['진행단계'] || '1');
+  const isTmp    = r['임시ID여부'] === 'Y';
+  const tagCls   = `tag-${stage}`;
+  const tagLabel = STAGE_LABELS[stage - 1] || '';
+
+  const pips = STAGE_LABELS.map((_, i) => {
+    const s = i + 1;
+    let cls = '';
+    if (stage === 7)      cls = s <= 4 ? 'done' : 'cancel';
+    else if (s < stage)   cls = 'done';
+    else if (s === stage) cls = 'current';
+    return `<div class="stage-pip ${cls}"></div>`;
+  }).join('');
+
+  const tmpBadge = isTmp ? `<span class="tag-tmp">임시ID</span>` : '';
+
+  return `
+    <div class="inst-card" onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
+      <div style="flex:1;min-width:0">
+        <div class="inst-name-row">
+          <span class="inst-name">${r['기관명'] || r['centerID']}</span>
+          ${tmpBadge}
+        </div>
+        <div class="inst-meta">${r['centerID']} · ${r['담당지사']||'-'} · ${r['주소_시도']||'-'}</div>
+        <div class="inst-stage-bar">${pips}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <span class="stage-tag ${tagCls}">${tagLabel}</span>
+        <span style="font-size:11px;color:var(--text-hint)">${CH.fmtDate(r['등록일'])}</span>
+      </div>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>

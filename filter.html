@@ -158,11 +158,13 @@ loadData();
 async function loadData() {
   try {
     const d = await CH.get({ action: 'getInstitutions' });
+    console.log('API 응답:', d);
     if (!d.ok) throw new Error(d.error);
     ovData = d.data;
     initFilterOptions();
     applyFilters();
   } catch(e) {
+    console.error('loadData 오류:', e);
     document.getElementById('filter-list').innerHTML =
       `<div class="empty">오류: ${e.message}</div>`;
   }

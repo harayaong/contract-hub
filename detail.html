@@ -1,0 +1,345 @@
+<!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
+<!-- detail.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 Contract Hub — 기관 상세</title>
+<script src="common.js"></script>
+</head>
+<body>
+<script> CH.injectStyle(); </script>
+
+<style>
+  .detail-back { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); cursor: pointer; margin-bottom: 20px; background: none; border: none; font-family: inherit; padding: 0; }
+  .detail-back:hover { color: var(--primary); }
+  .stage-wrap { display: flex; align-items: center; overflow-x: auto; padding-bottom: 4px; margin-bottom: 24px; }
+  .stage-item { display: flex; align-items: center; flex-shrink: 0; }
+  .stage-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 2px solid var(--border); background: var(--card); color: var(--text-hint); flex-shrink: 0; }
+  .stage-dot.done    { background: var(--primary);       border-color: var(--primary);       color: #fff; }
+  .stage-dot.current { background: var(--primary-light); border-color: var(--primary-light); color: #fff; }
+  .stage-dot.cancel  { background: #ef4444;              border-color: #ef4444;              color: #fff; }
+  .stage-label { font-size: 11px; color: var(--text-hint); margin: 0 6px; white-space: nowrap; }
+  .stage-label.done    { color: var(--primary);       font-weight: 600; }
+  .stage-label.current { color: var(--primary-light); font-weight: 700; }
+  .stage-line { width: 24px; height: 2px; background: var(--border); flex-shrink: 0; }
+  .stage-line.done { background: var(--primary); }
+  .confirm-id-box { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .confirm-id-box input { flex: 1; min-width: 140px; padding: 8px 12px; border: 1px solid #fcd34d; border-radius: 8px; font-size: 14px; outline: none; }
+  .confirm-id-box input:focus { border-color: var(--primary-light); }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; }
+  .info-item span:first-child { display: block; color: var(--text-hint); margin-bottom: 2px; }
+  .info-item strong { color: var(--text); }
+  .cls-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .tag-tmp { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #92400e; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge-on     { background: #d1fae5; color: #065f46; }
+  .badge-off    { background: #fee2e2; color: #991b1b; }
+  .badge-sanity { background: #fef3c7; color: #92400e; }
+  .badge-etc    { background: #f1f5f9; color: #475569; }
+  @media (max-width: 768px) {
+    .info-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- 사이드바 -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">📋</div>
+    <span>Contract Hub</span>
+  </div>
+  <nav class="sidebar-nav" id="sideNav"></nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar"></div>
+      <div>
+        <div class="user-name" id="userName"></div>
+        <div class="user-role" id="userRole"></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="CH.logout()">로그아웃</button>
+  </div>
+</div>
+
+<!-- 모바일 하단 탭바 -->
+<div class="bottombar">
+  <div class="bottombar-inner" id="bottomNav"></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">기관 상세</div>
+      <div class="topbar-sub">기관 상세 정보 및 단계 관리</div>
+    </div>
+  </div>
+  <div class="content">
+    <button class="detail-back" onclick="history.back()">← 목록으로</button>
+    <div id="detail-content"><div class="empty">데이터 불러오는 중...</div></div>
+  </div>
+</div>
+
+<script>
+if (!CH.requireAuth()) throw new Error('unauthorized');
+CH.renderNav('');
+
+const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];
+
+// URL 파라미터에서 centerID 추출
+const params   = new URLSearchParams(location.search);
+const centerID = params.get('id') || '';
+
+if (!centerID) {
+  document.getElementById('detail-content').innerHTML =
+    '<div class="empty">기관 ID가 없습니다.</div>';
+} else {
+  loadDetail();
+}
+
+// ==============================
+// 데이터 로드
+// ==============================
+let inst = null, clsData = [], ctData = null;
+
+async function loadDetail() {
+  try {
+    const [instRes, clsRes, ctRes] = await Promise.all([
+      CH.get({ action: 'getInstitutions' }),
+      CH.get({ action: 'getClassrooms', centerID }),
+      CH.get({ action: 'getContracts',  centerID }),
+    ]);
+
+    if (!instRes.ok) throw new Error(instRes.error);
+    inst    = (instRes.data || []).find(x => x['centerID'] === centerID) || null;
+    clsData = clsRes.ok  ? clsRes.data  : [];
+    ctData  = ctRes.ok && ctRes.data.length ? ctRes.data[0] : null;
+
+    if (!inst) {
+      document.getElementById('detail-content').innerHTML =
+        '<div class="empty">기관을 찾을 수 없습니다.</div>';
+      return;
+    }
+
+    renderDetail();
+  } catch(e) {
+    document.getElementById('detail-content').innerHTML =
+      `<div class="empty">오류: ${e.message}</div>`;
+  }
+}
+
+// ==============================
+// 상세 렌더링
+// ==============================
+function renderDetail() {
+  const stage = parseInt(inst['진행단계'] || '1');
+  const isTmp = inst['임시ID여부'] === 'Y';
+
+  // 진행단계 바
+  const stageBar = STAGE_LABELS.map((label, i) => {
+    const s = i + 1;
+    let dotCls = '', labelCls = '', lineCls = '';
+    if (stage === 7) {
+      dotCls   = s <= 4 ? 'done' : s === 7 ? 'cancel' : '';
+      labelCls = s <= 4 ? 'done' : s === 7 ? 'current' : '';
+      lineCls  = s <= 4 ? 'done' : '';
+    } else {
+      dotCls   = s < stage ? 'done' : s === stage ? 'current' : '';
+      labelCls = s < stage ? 'done' : s === stage ? 'current' : '';
+      lineCls  = s < stage ? 'done' : '';
+    }
+    return `
+      <div class="stage-item">
+        <div class="stage-dot ${dotCls}">${s < stage && stage !== 7 ? '✓' : s}</div>
+        <span class="stage-label ${labelCls}">${label}</span>
+      </div>
+      ${i < STAGE_LABELS.length - 1 ? `<div class="stage-line ${lineCls}"></div>` : ''}
+    `;
+  }).join('');
+
+  // 임시ID 확정 박스
+  const confirmBox = isTmp ? `
+    <div class="confirm-id-box">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ 임시ID 사용 중 — siteID 확정 필요</div>
+        <div style="font-size:12px;color:#92400e">현재: <strong>${inst['centerID']}</strong></div>
+      </div>
+      <input id="newSiteId" placeholder="실제 prefix 입력 (예: dgbom)">
+      <button class="btn btn-warn btn-sm" onclick="confirmSiteId()">확정</button>
+    </div>
+  ` : '';
+
+  // 다음 단계 버튼
+  const stageBtn = CH.role !== 'branch' && stage < 6 ? `
+    <button class="btn btn-primary btn-sm" onclick="advanceStage(${stage + 1})">
+      다음 단계 → ${STAGE_LABELS[stage] || ''}
+    </button>
+  ` : '';
+
+  // 계약 정보
+  const ctHTML = ctData ? `
+    <div class="info-grid">
+      <div class="info-item"><span>계약일자</span><strong>${CH.fmtDate(ctData['계약일자'])}</strong></div>
+      <div class="info-item"><span>계약기간</span><strong>${ctData['계약기간']||'-'}</strong></div>
+      <div class="info-item"><span>계약시작일</span><strong>${CH.fmtDate(ctData['계약시작일'])}</strong></div>
+      <div class="info-item"><span>계약종료일</span><strong>${CH.fmtDate(ctData['계약종료일'])}</strong></div>
+      <div class="info-item"><span>부모님서비스</span><strong>${ctData['부모님서비스']||'-'}</strong></div>
+      <div class="info-item"><span>입력지사</span><strong>${ctData['입력자지사']||'-'}</strong></div>
+    </div>
+  ` : '<div class="empty" style="padding:20px">계약 정보 없음</div>';
+
+  // 교실 목록
+  const clsRows = clsData.length ? clsData.map(c => `
+    <tr>
+      <td><strong>${c['siteID']||''}</strong></td>
+      <td>${c['교실명']||''}</td>
+      <td style="color:var(--text-sub)">${CH.fmtDate(c['서비스시작일'])}</td>
+      <td style="color:var(--text-sub)">${CH.fmtDate(c['서비스종료일'])}</td>
+      <td>${CH.badgeStatus(c['OMS_상태'])}</td>
+      <td style="font-size:12px;color:var(--text-sub)">${c['OMS_서비스요일']||''}</td>
+      <td style="font-size:12px;color:var(--text-sub)">${c['OMS_스케줄']||''}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="7" class="empty">등록된 교실 없음</td></tr>';
+
+  const tmpBadge = isTmp ? `<span class="tag-tmp" style="margin-left:8px">임시ID</span>` : '';
+
+  document.getElementById('detail-content').innerHTML = `
+
+    <!-- 기관 기본정보 -->
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            ${inst['기관명']||inst['centerID']}${tmpBadge}
+          </div>
+          <div style="font-size:13px;color:var(--text-hint);margin-top:4px">
+            ${inst['centerID']} · ${inst['담당지사']||'-'} · ${inst['주소_시도']||''} ${inst['주소_상세']||''}
+          </div>
+          <div style="font-size:13px;color:var(--text-hint);margin-top:2px">
+            원장님: ${inst['원장님성함']||'-'} · ${inst['원장님연락처']||'-'}
+          </div>
+        </div>
+        ${stageBtn}
+      </div>
+      ${confirmBox}
+      <div class="stage-wrap">${stageBar}</div>
+    </div>
+
+    <!-- 계약 정보 -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">계약 정보</div></div>
+      ${ctHTML}
+    </div>
+
+    <!-- 교실 목록 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">교실 목록</div>
+        ${CH.role !== 'branch' ? `<button class="btn btn-secondary btn-sm" onclick="toggleAddClassroom()">+ 교실 추가</button>` : ''}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>siteID</th><th>교실명</th><th>서비스 시작일</th>
+              <th>서비스 종료일</th><th>OMS 상태</th><th>서비스 요일</th><th>스케줄</th>
+            </tr>
+          </thead>
+          <tbody id="cls-tbody">${clsRows}</tbody>
+        </table>
+      </div>
+      <div id="add-cls-wrap"></div>
+    </div>
+  `;
+}
+
+// ==============================
+// siteID 확정
+// ==============================
+async function confirmSiteId() {
+  const newId = (document.getElementById('newSiteId')?.value || '').trim();
+  if (!newId)              { CH.showToast('실제 prefix를 입력해주세요.'); return; }
+  if (newId.startsWith('tmp_')) { CH.showToast('tmp_ 로 시작하면 안돼요.'); return; }
+
+  const result = await CH.post('confirmSiteId', { oldId: centerID, newId });
+  if (result.ok || result.duplicate) {
+    CH.showToast('siteID가 확정되었습니다.');
+    location.href = `detail.html?id=${encodeURIComponent(newId)}`;
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+
+// ==============================
+// 단계 진행
+// ==============================
+async function advanceStage(newStage) {
+  const result = await CH.post('updateStage', { 기관ID: centerID, stage: newStage });
+  if (result.ok || result.duplicate) {
+    CH.showToast(`${STAGE_LABELS[newStage - 1]} 단계로 업데이트됐습니다.`);
+    inst['진행단계'] = String(newStage);
+    renderDetail();
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+
+// ==============================
+// 교실 추가
+// ==============================
+function toggleAddClassroom() {
+  const wrap = document.getElementById('add-cls-wrap');
+  if (wrap.innerHTML) { wrap.innerHTML = ''; return; }
+
+  wrap.innerHTML = `
+    <div class="cls-form">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>siteID *</label>
+          <input id="add-siteID" placeholder="예: ${centerID}_1226">
+        </div>
+        <div class="form-group">
+          <label>교실명</label>
+          <input id="add-교실명" placeholder="예: 장미반">
+        </div>
+        <div class="form-group">
+          <label>서비스 시작일</label>
+          <input id="add-서비스시작일" type="date">
+        </div>
+        <div class="form-group">
+          <label>서비스 종료일</label>
+          <input id="add-서비스종료일" type="date">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('add-cls-wrap').innerHTML=''">취소</button>
+        <button class="btn btn-primary btn-sm" onclick="saveClassroom()">저장</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveClassroom() {
+  const siteID = (document.getElementById('add-siteID')?.value || '').trim();
+  if (!siteID) { CH.showToast('siteID는 필수입니다.'); return; }
+
+  const data = {
+    siteID,
+    centerID,
+    교실명:       (document.getElementById('add-교실명')?.value       || '').trim(),
+    서비스시작일: (document.getElementById('add-서비스시작일')?.value || '').trim(),
+    서비스종료일: (document.getElementById('add-서비스종료일')?.value || '').trim(),
+  };
+
+  const result = await CH.post('saveClassroom', data);
+  if (result.ok || result.duplicate) {
+    CH.showToast('저장되었습니다.');
+    clsData.push(data);
+    renderDetail();
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+</script>
+</body>
+</html>

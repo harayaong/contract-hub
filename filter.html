@@ -146,6 +146,11 @@
 
 <script>
 if (!CH.requireAuth()) throw new Error('unauthorized');
+
+// 디버그
+console.log('token:', CH.token);
+console.log('role:', CH.role);
+console.log('name:', CH.name);  
 CH.renderNav('filter');
 
 const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];

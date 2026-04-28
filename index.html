@@ -131,8 +131,15 @@
 </div>
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbx7SNtdVTDbe66mXwcU-Fc_rrZrsC1t4NLNKsyU1cOu8gQEFRlPEqr9-cRtwOsbq1tp9w/exec';
-if (localStorage.getItem('ch_token')) location.href = 'dashboard.html';
+
+// 이미 로그인된 경우 역할에 따라 분기
+if (localStorage.getItem('ch_token')) {
+  const r = localStorage.getItem('ch_role');
+  location.href = r === 'branch' ? 'contract.html' : 'filter.html';
+}
+
 document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
 async function login() {
   const id  = document.getElementById('id').value.trim();
   const pw  = document.getElementById('pw').value.trim();
@@ -145,17 +152,25 @@ async function login() {
     const data = await r.json();
     if (data.ok) {
       localStorage.setItem('ch_token', data.token);
-      localStorage.setItem('ch_role', data.role);
+      localStorage.setItem('ch_role',   data.role);
       localStorage.setItem('ch_branch', data.branch);
-      localStorage.setItem('ch_name', data.name);
-      location.href = 'dashboard.html';
-    } else { showErr(data.error || '로그인 실패'); }
-  } catch(e) { showErr('서버 연결 오류. 잠시 후 다시 시도해주세요.'); }
-  finally { btn.disabled = false; btn.textContent = '로그인'; }
+      localStorage.setItem('ch_name',   data.name);
+      location.href = data.role === 'branch' ? 'contract.html' : 'filter.html';
+    } else {
+      showErr(data.error || '로그인 실패');
+    }
+  } catch(e) {
+    showErr('서버 연결 오류. 잠시 후 다시 시도해주세요.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '로그인';
+  }
 }
+
 function showErr(msg) {
   const e = document.getElementById('errMsg');
-  e.textContent = msg; e.style.display = 'block';
+  e.textContent = msg;
+  e.style.display = 'block';
 }
 </script>
 </body>

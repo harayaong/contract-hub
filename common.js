@@ -107,16 +107,18 @@ const CH = {
   // ==============================
 MENUS: {
   admin: [
-    { id: 'overview', icon: '🏠', label: '전체 현황',  href: 'overview.html'  },
-    { id: 'filter',   icon: '🔍', label: '필터 검색',  href: 'filter.html'    },
-    { id: 'contract', icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
-    { id: 'logs',     icon: '🕓', label: '변경 로그',  href: 'logs.html'      },
+    { id: 'overview',   icon: '🏠', label: '계약 현황',    href: 'overview.html'  },
+    { id: 'filter',     icon: '🔍', label: '필터 검색',    href: 'filter.html'    },
+    { id: 'contract',   icon: '✍️', label: '계약 입력',    href: 'contract.html'  },
+    { id: 'logs',       icon: '🕓', label: '변경 로그',    href: 'logs.html'      },
+    { id: 'dashboard',  icon: '📊', label: '서비스대시보드', href: 'https://harayaong.github.io/branches/login.html', external: true },
   ],
   bizteam: [
-    { id: 'overview', icon: '🏠', label: '전체 현황',  href: 'overview.html'  },
-    { id: 'filter',   icon: '🔍', label: '필터 검색',  href: 'filter.html'    },
-    { id: 'contract', icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
-    { id: 'logs',     icon: '🕓', label: '변경 로그',  href: 'logs.html'      },
+    { id: 'overview',   icon: '🏠', label: '계약 현황',    href: 'overview.html'  },
+    { id: 'filter',     icon: '🔍', label: '필터 검색',    href: 'filter.html'    },
+    { id: 'contract',   icon: '✍️', label: '계약 입력',    href: 'contract.html'  },
+    { id: 'logs',       icon: '🕓', label: '변경 로그',    href: 'logs.html'      },
+    { id: 'dashboard',  icon: '📊', label: '서비스대시보드', href: 'https://harayaong.github.io/branches/login.html', external: true },
   ],
   branch: [
     { id: 'contract', icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
@@ -132,8 +134,8 @@ MENUS: {
     const sideNav = document.getElementById('sideNav');
     if (sideNav) {
       sideNav.innerHTML = menus.map(m => `
-        <a href="${m.href}" class="nav-item ${m.id === activeId ? 'active' : ''}">
-          <span class="nav-icon">${m.icon}</span>${m.label}
+        <a href="${m.href}" class="nav-item ${m.id === activeId ? 'active' : ''}" ${m.external ? 'target="_blank" rel="noopener"' : ''}>
+          <span class="nav-icon">${m.icon}</span>${m.label}${m.external ? '<span style="font-size:10px;opacity:0.6;margin-left:4px">↗</span>' : ''}
         </a>
       `).join('');
     }
@@ -142,7 +144,7 @@ MENUS: {
     const bottomNav = document.getElementById('bottomNav');
     if (bottomNav) {
       bottomNav.innerHTML = menus.map(m => `
-        <a href="${m.href}" class="bottom-item ${m.id === activeId ? 'active' : ''}">
+        <a href="${m.href}" class="bottom-item ${m.id === activeId ? 'active' : ''}" ${m.external ? 'target="_blank" rel="noopener"' : ''}>
           <span class="b-icon">${m.icon}</span>${m.label}
         </a>
       `).join('');

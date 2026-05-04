@@ -105,24 +105,27 @@ const CH = {
   // ==============================
   // 헤더 렌더링 (공통 사이드바/탭바)
   // ==============================
-  MENUS: {
-    admin:   [
-      { id: 'overview',  icon: '🏠', label: '전체 현황',  href: 'overview.html'  },
-      { id: 'filter',    icon: '🔍', label: '필터 검색',  href: 'filter.html'    },
-      { id: 'contract',  icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
-      { id: 'logs',      icon: '🕓', label: '변경 로그',  href: 'logs.html'      },
-    ],
-    bizteam: [
-      { id: 'overview',  icon: '🏠', label: '전체 현황',  href: 'overview.html'  },
-      { id: 'filter',    icon: '🔍', label: '필터 검색',  href: 'filter.html'    },
-      { id: 'contract',  icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
-      { id: 'logs',      icon: '🕓', label: '변경 로그',  href: 'logs.html'      },
-    ],
-    branch:  [
-      { id: 'contract',  icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
-      { id: 'filter',    icon: '🔍', label: '기관 현황',  href: 'filter.html'    },
-    ],
-  },
+MENUS: {
+  admin: [
+    { id: 'overview', icon: '🏠', label: '전체 현황',  href: 'overview.html'  },
+    { id: 'filter',   icon: '🔍', label: '필터 검색',  href: 'filter.html'    },
+    { id: 'contract', icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
+    { id: 'logs',     icon: '🕓', label: '변경 로그',  href: 'logs.html'      },
+    { id: 'oms',      icon: '🔄', label: 'OMS 동기화', href: 'oms.html'       },
+  ],
+  bizteam: [
+    { id: 'overview', icon: '🏠', label: '전체 현황',  href: 'overview.html'  },
+    { id: 'filter',   icon: '🔍', label: '필터 검색',  href: 'filter.html'    },
+    { id: 'contract', icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
+    { id: 'logs',     icon: '🕓', label: '변경 로그',  href: 'logs.html'      },
+    { id: 'oms',      icon: '🔄', label: 'OMS 동기화', href: 'oms.html'       },
+  ],
+  branch: [
+    { id: 'contract', icon: '✍️', label: '계약 입력',  href: 'contract.html'  },
+    { id: 'overview', icon: '🏫', label: '내 기관 현황', href: 'overview.html' },
+    { id: 'filter',   icon: '🔍', label: '필터 검색',  href: 'filter.html'    },
+  ],
+},
 
   renderNav(activeId) {
     const menus = this.MENUS[this.role] || this.MENUS.branch;

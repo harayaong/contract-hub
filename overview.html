@@ -105,10 +105,16 @@
   .badge-sanity { background: #fef3c7; color: #92400e; }
   .badge-etc    { background: #f1f5f9; color: #475569; }
 
-  /* OMS 교실 뱃지 묶음 */
-  .oms-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  /* OMS 교실 요약 */
+  .oms-summary {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px; flex-wrap: wrap;
+  }
+  .oms-summary-label {
+    font-size: 11px; color: var(--text-hint); flex-shrink: 0;
+  }
   .oms-cls-badge {
-    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
     border-radius: 99px; white-space: nowrap;
   }
   .ocb-on     { background: #d1fae5; color: #065f46; }
@@ -269,6 +275,17 @@ if (CH.role === 'branch') {
 loadData();
 
 // ==============================
+// OMS 상태값 정규화 (APPROVED → ON)
+// ==============================
+function normalizeOmsStatus(raw) {
+  const s = String(raw || '').toUpperCase();
+  if (s === 'ON' || s === 'APPROVED') return 'ON';
+  if (s === 'OFF')                    return 'OFF';
+  if (s.includes('SANITY'))           return 'SANITY';
+  return s || '-';
+}
+
+// ==============================
 // 데이터 로드 (기관 + OMS 병렬)
 // ==============================
 async function loadData() {
@@ -360,11 +377,11 @@ function renderOmsGrid() {
   Object.values(omsMap).forEach(clsList => {
     clsList.forEach(cls => {
       totalCls++;
-      const s = String(cls['OMS_상태'] || '').toUpperCase();
-      if (s === 'ON' || s === 'APPROVED') count['ON']++;
-      else if (s === 'OFF')               count['OFF']++;
-      else if (s.includes('SANITY'))      count['SANITY']++;
-      else                                count['NONE']++;
+      const s = normalizeOmsStatus(cls['OMS_상태']);
+      if (s === 'ON')         count['ON']++;
+      else if (s === 'OFF')   count['OFF']++;
+      else if (s === 'SANITY') count['SANITY']++;
+      else                    count['NONE']++;
     });
   });
 
@@ -472,25 +489,41 @@ function instCardHTML(r) {
 
   const tmpBadge = isTmp ? `<span class="tag-tmp">임시ID</span>` : '';
 
-  // OMS 교실 뱃지 렌더링
+  // OMS 교실 요약 렌더링
   const clsList = omsMap[r['centerID']] || [];
-  let omsBadgesHtml = '';
+  let omsSummaryHtml = '';
   if (clsList.length === 0) {
-    // 6단계(오픈) 기관인데 OMS 데이터 없으면 강조, 아니면 조용히
+    // 6단계(오픈) 기관인데 OMS 없으면 강조, 아니면 조용히
     if (stage === 6) {
-      omsBadgesHtml = `<div class="oms-badges"><span class="oms-cls-badge ocb-none">OMS 미연동</span></div>`;
+      omsSummaryHtml = `
+        <div class="oms-summary">
+          <span class="oms-summary-label">교실 0개</span>
+          <span class="oms-cls-badge ocb-none">OMS 미연동</span>
+        </div>`;
     }
   } else {
-    const badges = clsList.map(cls => {
-      const s   = String(cls['OMS_상태'] || '').toUpperCase();
-      const sid = cls['siteID'] || '';
-      let cls2  = 'ocb-none';
-      if (s === 'ON' || s === 'APPROVED') cls2 = 'ocb-on';
-      else if (s === 'OFF')               cls2 = 'ocb-off';
-      else if (s.includes('SANITY'))      cls2 = 'ocb-sanity';
-      return `<span class="oms-cls-badge ${cls2}" title="${sid}">${cls['OMS_상태'] || '-'}</span>`;
-    }).join('');
-    omsBadgesHtml = `<div class="oms-badges">${badges}</div>`;
+    // 상태별 집계
+    const cnt = { ON: 0, OFF: 0, SANITY: 0, 기타: 0 };
+    clsList.forEach(cls => {
+      const s = normalizeOmsStatus(cls['OMS_상태']);
+      if (s === 'ON')         cnt.ON++;
+      else if (s === 'OFF')   cnt.OFF++;
+      else if (s === 'SANITY') cnt.SANITY++;
+      else                    cnt.기타++;
+    });
+
+    const total = clsList.length;
+    const badges = [];
+    if (cnt.ON     > 0) badges.push(`<span class="oms-cls-badge ocb-on">ON ${cnt.ON}</span>`);
+    if (cnt.OFF    > 0) badges.push(`<span class="oms-cls-badge ocb-off">OFF ${cnt.OFF}</span>`);
+    if (cnt.SANITY > 0) badges.push(`<span class="oms-cls-badge ocb-sanity">SANITY ${cnt.SANITY}</span>`);
+    if (cnt.기타   > 0) badges.push(`<span class="oms-cls-badge ocb-none">기타 ${cnt.기타}</span>`);
+
+    omsSummaryHtml = `
+      <div class="oms-summary">
+        <span class="oms-summary-label">교실 ${total}개</span>
+        ${badges.join('')}
+      </div>`;
   }
 
   return `
@@ -504,7 +537,7 @@ function instCardHTML(r) {
           ${r['centerID']} · ${r['담당지사']||'-'} · ${r['주소_시도']||'-'}
         </div>
         <div class="inst-stage-bar">${pips}</div>
-        ${omsBadgesHtml}
+        ${omsSummaryHtml}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <span class="stage-tag ${tagCls}">${tagLabel}</span>

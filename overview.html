@@ -20,13 +20,33 @@
     border-radius: 14px; padding: 20px;
     display: flex; flex-direction: column; gap: 6px;
   }
-  .summary-label { font-size: 12px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.4px; }
-  .summary-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
-  .summary-sub   { font-size: 12px; color: var(--text-hint); }
-  .summary-card.accent-blue  { border-left: 4px solid var(--primary-light); }
-  .summary-card.accent-green { border-left: 4px solid #10b981; }
-  .summary-card.accent-amber { border-left: 4px solid #f59e0b; }
-  .summary-card.accent-red   { border-left: 4px solid #ef4444; }
+  .summary-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+  .summary-value { font-size: 28px; font-weight: 800; line-height: 1; }
+  .summary-sub   { font-size: 12px; }
+  .summary-card.accent-blue  {
+    background: #dbeafe; border-color: #93c5fd;
+  }
+  .summary-card.accent-blue  .summary-label { color: #1e40af; }
+  .summary-card.accent-blue  .summary-value { color: #1e3a8a; }
+  .summary-card.accent-blue  .summary-sub   { color: #3b82f6; }
+  .summary-card.accent-amber {
+    background: #fef3c7; border-color: #fcd34d;
+  }
+  .summary-card.accent-amber .summary-label { color: #b45309; }
+  .summary-card.accent-amber .summary-value { color: #92400e; }
+  .summary-card.accent-amber .summary-sub   { color: #d97706; }
+  .summary-card.accent-green {
+    background: #d1fae5; border-color: #6ee7b7;
+  }
+  .summary-card.accent-green .summary-label { color: #047857; }
+  .summary-card.accent-green .summary-value { color: #065f46; }
+  .summary-card.accent-green .summary-sub   { color: #059669; }
+  .summary-card.accent-red   {
+    background: #fee2e2; border-color: #fca5a5;
+  }
+  .summary-card.accent-red   .summary-label { color: #b91c1c; }
+  .summary-card.accent-red   .summary-value { color: #991b1b; }
+  .summary-card.accent-red   .summary-sub   { color: #dc2626; }
 
   /* 파이프라인 */
   .pipeline { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
@@ -193,18 +213,18 @@
         <div class="summary-value" id="s-total">-</div>
         <div class="summary-sub">등록된 전체 기관 수</div>
       </div>
+      <div class="summary-card accent-amber">
+        <div class="summary-label">설치 진행 중</div>
+        <div class="summary-value" id="s-progress">-</div>
+        <div class="summary-sub">1~5단계</div>
+      </div>
       <div class="summary-card accent-green">
         <div class="summary-label">서비스 오픈</div>
         <div class="summary-value" id="s-open">-</div>
         <div class="summary-sub">6단계 완료</div>
       </div>
-      <div class="summary-card accent-amber">
-        <div class="summary-label">진행 중</div>
-        <div class="summary-value" id="s-progress">-</div>
-        <div class="summary-sub">1~5단계</div>
-      </div>
       <div class="summary-card accent-red">
-        <div class="summary-label">취소</div>
+        <div class="summary-label">서비스 취소</div>
         <div class="summary-value" id="s-cancel">-</div>
         <div class="summary-sub">계약 취소</div>
       </div>

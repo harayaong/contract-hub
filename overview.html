@@ -1,1 +1,391 @@
+<!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
+<!-- overview.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 Contract Hub — 전체 현황</title>
+<script src="common.js"></script>
+</head>
+<body>
+<script> CH.injectStyle(); </script>
 
+<style>
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;
+  }
+  .summary-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .summary-label { font-size: 12px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.4px; }
+  .summary-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
+  .summary-sub   { font-size: 12px; color: var(--text-hint); }
+  .summary-card.accent-blue  { border-left: 4px solid var(--primary-light); }
+  .summary-card.accent-green { border-left: 4px solid #10b981; }
+  .summary-card.accent-amber { border-left: 4px solid #f59e0b; }
+  .summary-card.accent-red   { border-left: 4px solid #ef4444; }
+
+  /* 파이프라인 */
+  .pipeline { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+  .pipe-item {
+    flex: 1; min-width: 80px;
+    background: var(--card); border: 1px solid var(--border);
+    padding: 14px 12px; text-align: center;
+    position: relative;
+  }
+  .pipe-item:first-child { border-radius: 12px 0 0 12px; }
+  .pipe-item:last-child  { border-radius: 0 12px 12px 0; }
+  .pipe-item:not(:last-child)::after {
+    content: '›'; position: absolute; right: -8px; top: 50%;
+    transform: translateY(-50%); color: var(--text-hint);
+    font-size: 18px; z-index: 1;
+  }
+  .pipe-count { font-size: 22px; font-weight: 800; color: var(--primary); }
+  .pipe-label { font-size: 11px; color: var(--text-sub); margin-top: 4px; font-weight: 600; }
+  .pipe-item.cancel .pipe-count { color: #ef4444; }
+
+  /* OMS 상태 요약 */
+  .oms-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .oms-chip {
+    flex: 1; min-width: 100px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .oms-chip-count { font-size: 22px; font-weight: 800; }
+  .oms-chip-label { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+  .oms-on     .oms-chip-count { color: #065f46; }
+  .oms-off    .oms-chip-count { color: #991b1b; }
+  .oms-sanity .oms-chip-count { color: #92400e; }
+  .oms-etc    .oms-chip-count { color: #475569; }
+
+  /* 기관 카드 */
+  .inst-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 8px;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .inst-card:hover { border-color: var(--primary-light); box-shadow: 0 2px 12px rgba(37,99,235,0.08); }
+  .inst-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .inst-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .inst-meta { font-size: 12px; color: var(--text-hint); }
+  .inst-stage-bar { display: flex; gap: 4px; margin-top: 8px; }
+  .stage-pip { width: 20px; height: 6px; border-radius: 3px; background: var(--border); }
+  .stage-pip.done    { background: var(--primary); }
+  .stage-pip.current { background: var(--primary-light); }
+  .stage-pip.cancel  { background: #fca5a5; }
+  .stage-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+  .tag-1 { background: #fef3c7; color: #92400e; }
+  .tag-2 { background: #dbeafe; color: #1e40af; }
+  .tag-3 { background: #ede9fe; color: #5b21b6; }
+  .tag-4 { background: #d1fae5; color: #065f46; }
+  .tag-5 { background: #d1fae5; color: #065f46; }
+  .tag-6 { background: #0f172a; color: #fff; }
+  .tag-7 { background: #fee2e2; color: #991b1b; }
+  .tag-tmp { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #92400e; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge-on     { background: #d1fae5; color: #065f46; }
+  .badge-off    { background: #fee2e2; color: #991b1b; }
+  .badge-sanity { background: #fef3c7; color: #92400e; }
+  .badge-etc    { background: #f1f5f9; color: #475569; }
+
+  /* 필터 바 */
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .f-select {
+    padding: 9px 12px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 14px; background: #f8fafc;
+    outline: none; font-family: inherit; transition: border-color 0.2s;
+  }
+  .f-select:focus { border-color: var(--primary-light); background: #fff; }
+  .result-count { font-size: 13px; color: var(--text-hint); margin-left: auto; }
+
+  @media (max-width: 768px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .summary-value { font-size: 22px; }
+    .pipe-item { min-width: 60px; padding: 10px 8px; }
+    .pipe-count { font-size: 18px; }
+  }
+  @media (max-width: 375px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .oms-chip { min-width: 80px; }
+  }
+</style>
+
+<!-- 사이드바 -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">📋</div>
+    <span>Contract Hub</span>
+  </div>
+  <nav class="sidebar-nav" id="sideNav"></nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar"></div>
+      <div>
+        <div class="user-name" id="userName"></div>
+        <div class="user-role" id="userRole"></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="CH.logout()">로그아웃</button>
+  </div>
+</div>
+
+<!-- 모바일 하단 탭바 -->
+<div class="bottombar">
+  <div class="bottombar-inner" id="bottomNav"></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbarTitle">전체 현황</div>
+      <div class="topbar-sub" id="topbarSub">기관별 서비스 진행 현황을 확인합니다</div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- 요약 카드 -->
+    <div class="summary-grid" id="summaryGrid">
+      <div class="summary-card accent-blue">
+        <div class="summary-label">전체 기관</div>
+        <div class="summary-value" id="s-total">-</div>
+        <div class="summary-sub">등록된 전체 기관 수</div>
+      </div>
+      <div class="summary-card accent-green">
+        <div class="summary-label">서비스 오픈</div>
+        <div class="summary-value" id="s-open">-</div>
+        <div class="summary-sub">6단계 완료</div>
+      </div>
+      <div class="summary-card accent-amber">
+        <div class="summary-label">진행 중</div>
+        <div class="summary-value" id="s-progress">-</div>
+        <div class="summary-sub">1~5단계</div>
+      </div>
+      <div class="summary-card accent-red">
+        <div class="summary-label">취소</div>
+        <div class="summary-value" id="s-cancel">-</div>
+        <div class="summary-sub">계약 취소</div>
+      </div>
+    </div>
+
+    <!-- 파이프라인 -->
+    <div class="pipeline" id="pipeline"></div>
+
+    <!-- OMS 상태 요약 -->
+    <div class="oms-grid" id="omsGrid"></div>
+
+    <!-- 기관 목록 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">기관 목록</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadData()">새로고침</button>
+      </div>
+
+      <!-- 본사만 지사 필터 표시 -->
+      <div class="filter-bar" id="filterBar" style="display:none">
+        <select class="f-select" id="f-jisa" onchange="applyFilter()">
+          <option value="">전체 지사</option>
+        </select>
+        <select class="f-select" id="f-stage" onchange="applyFilter()">
+          <option value="">전체 단계</option>
+          <option value="1">계약</option>
+          <option value="2">Admin 등록</option>
+          <option value="3">siteID 부여</option>
+          <option value="4">설치 완료</option>
+          <option value="5">업로드 확인</option>
+          <option value="6">서비스 오픈</option>
+          <option value="7">취소</option>
+        </select>
+        <input class="search-input" id="f-search" placeholder="기관명 또는 centerID" oninput="applyFilter()" style="max-width:220px">
+        <span class="result-count" id="resultCount"></span>
+      </div>
+
+      <div id="inst-list"><div class="empty">데이터 불러오는 중...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+if (!CH.requireAuth()) throw new Error('unauthorized');
+CH.renderNav('overview');
+
+const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];
+let allData = [];
+
+// 지사 계정이면 topbar 변경
+if (CH.role === 'branch') {
+  document.getElementById('topbarTitle').textContent = '내 기관 현황';
+  document.getElementById('topbarSub').textContent   = `${CH.branch} 담당 기관 현황입니다`;
+} else {
+  document.getElementById('filterBar').style.display = 'flex';
+}
+
+loadData();
+
+// ==============================
+// 데이터 로드
+// ==============================
+async function loadData() {
+  document.getElementById('inst-list').innerHTML = '<div class="empty">데이터 불러오는 중...</div>';
+  try {
+    const d = await CH.get({ action: 'getInstitutions' });
+    if (!d.ok) throw new Error(d.error);
+    allData = d.data;
+
+    // 본사: 지사 드롭다운 동적 생성
+    if (CH.role !== 'branch') {
+      const jisaSet = new Set(allData.map(r => r['담당지사']).filter(Boolean));
+      const sel = document.getElementById('f-jisa');
+      sel.innerHTML = '<option value="">전체 지사</option>';
+      [...jisaSet].sort().forEach(v => {
+        const o = document.createElement('option');
+        o.value = o.textContent = v;
+        sel.appendChild(o);
+      });
+    }
+
+    renderSummary(allData);
+    applyFilter();
+  } catch(e) {
+    document.getElementById('inst-list').innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+  }
+}
+
+// ==============================
+// 요약 카드 + 파이프라인 + OMS
+// ==============================
+function renderSummary(data) {
+  // 요약 카드
+  const total    = data.length;
+  const open     = data.filter(r => r['진행단계'] === '6').length;
+  const cancel   = data.filter(r => r['진행단계'] === '7').length;
+  const progress = total - open - cancel;
+
+  document.getElementById('s-total').textContent    = total;
+  document.getElementById('s-open').textContent     = open;
+  document.getElementById('s-progress').textContent = progress;
+  document.getElementById('s-cancel').textContent   = cancel;
+
+  // 파이프라인
+  const stageCounts = [0,0,0,0,0,0,0];
+  data.forEach(r => {
+    const s = parseInt(r['진행단계'] || '1') - 1;
+    if (s >= 0 && s < 7) stageCounts[s]++;
+  });
+
+  document.getElementById('pipeline').innerHTML = STAGE_LABELS.map((label, i) => `
+    <div class="pipe-item ${i === 6 ? 'cancel' : ''}">
+      <div class="pipe-count">${stageCounts[i]}</div>
+      <div class="pipe-label">${label}</div>
+    </div>
+  `).join('');
+
+  // OMS 상태 요약 (교실 기준은 별도 API 필요해서 기관 진행단계로 대체)
+  const omsCount = { ON: 0, OFF: 0, Sanitycheck: 0, 기타: 0 };
+  data.forEach(r => {
+    const stage = parseInt(r['진행단계'] || '1');
+    if (stage === 6)      omsCount['ON']++;
+    else if (stage === 7) omsCount['OFF']++;
+    else if (stage >= 4)  omsCount['Sanitycheck']++;
+    else                  omsCount['기타']++;
+  });
+
+  document.getElementById('omsGrid').innerHTML = `
+    <div class="oms-chip oms-on">
+      <div class="oms-chip-count">${omsCount['ON']}</div>
+      <div class="oms-chip-label">서비스 오픈</div>
+    </div>
+    <div class="oms-chip oms-sanity">
+      <div class="oms-chip-count">${omsCount['Sanitycheck']}</div>
+      <div class="oms-chip-label">설치 ~ 업로드</div>
+    </div>
+    <div class="oms-chip oms-etc">
+      <div class="oms-chip-count">${omsCount['기타']}</div>
+      <div class="oms-chip-label">계약 ~ 등록</div>
+    </div>
+    <div class="oms-chip oms-off">
+      <div class="oms-chip-count">${omsCount['OFF']}</div>
+      <div class="oms-chip-label">취소</div>
+    </div>
+  `;
+}
+
+// ==============================
+// 필터 적용
+// ==============================
+function applyFilter() {
+  const jisa  = document.getElementById('f-jisa')?.value  || '';
+  const stage = document.getElementById('f-stage')?.value || '';
+  const q     = (document.getElementById('f-search')?.value || '').toLowerCase();
+
+  const filtered = allData.filter(r => {
+    const matchJisa  = !jisa  || r['담당지사']  === jisa;
+    const matchStage = !stage || r['진행단계']  === stage;
+    const matchQ     = !q    ||
+      (r['기관명']  ||'').toLowerCase().includes(q) ||
+      (r['centerID']||'').toLowerCase().includes(q);
+    return matchJisa && matchStage && matchQ;
+  });
+
+  const countEl = document.getElementById('resultCount');
+  if (countEl) countEl.textContent = `${filtered.length}건`;
+
+  renderList(filtered);
+}
+
+// ==============================
+// 기관 목록 렌더링
+// ==============================
+function renderList(data) {
+  const el = document.getElementById('inst-list');
+  if (!data.length) {
+    el.innerHTML = '<div class="empty">조건에 맞는 기관이 없습니다</div>';
+    return;
+  }
+  el.innerHTML = data.map(r => instCardHTML(r)).join('');
+}
+
+function instCardHTML(r) {
+  const stage    = parseInt(r['진행단계'] || '1');
+  const isTmp    = r['임시ID여부'] === 'Y';
+  const tagCls   = `tag-${stage}`;
+  const tagLabel = STAGE_LABELS[stage - 1] || '';
+
+  const pips = STAGE_LABELS.map((_, i) => {
+    const s = i + 1;
+    let cls = '';
+    if (stage === 7)      cls = s <= 4 ? 'done' : 'cancel';
+    else if (s < stage)   cls = 'done';
+    else if (s === stage) cls = 'current';
+    return `<div class="stage-pip ${cls}"></div>`;
+  }).join('');
+
+  const tmpBadge = isTmp ? `<span class="tag-tmp">임시ID</span>` : '';
+
+  return `
+    <div class="inst-card" onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
+      <div style="flex:1;min-width:0">
+        <div class="inst-name-row">
+          <span class="inst-name">${r['기관명'] || r['centerID']}</span>
+          ${tmpBadge}
+        </div>
+        <div class="inst-meta">
+          ${r['centerID']} · ${r['담당지사']||'-'} · ${r['주소_시도']||'-'}
+        </div>
+        <div class="inst-stage-bar">${pips}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <span class="stage-tag ${tagCls}">${tagLabel}</span>
+        <span style="font-size:11px;color:var(--text-hint)">${CH.fmtDate(r['등록일'])}</span>
+      </div>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>

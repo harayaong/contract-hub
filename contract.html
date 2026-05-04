@@ -1,1 +1,238 @@
+<!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
+<!-- contract.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 Contract Hub — 계약 입력</title>
+<script src="common.js"></script>
+</head>
+<body>
+<script> CH.injectStyle(); </script>
 
+<style>
+  .tmp-id-preview {
+    font-size: 12px; color: #92400e;
+    background: #fef3c7; padding: 4px 10px;
+    border-radius: 6px; margin-top: 4px; display: none;
+  }
+  @media (max-width: 375px) {
+    .form-group input, .form-group select { font-size: 16px; }
+  }
+</style>
+
+<!-- 사이드바 -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">📋</div>
+    <span>Contract Hub</span>
+  </div>
+  <nav class="sidebar-nav" id="sideNav"></nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar"></div>
+      <div>
+        <div class="user-name" id="userName"></div>
+        <div class="user-role" id="userRole"></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="CH.logout()">로그아웃</button>
+  </div>
+</div>
+
+<!-- 모바일 하단 탭바 -->
+<div class="bottombar">
+  <div class="bottombar-inner" id="bottomNav"></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">계약 입력</div>
+      <div class="topbar-sub">신규 계약 기관 정보를 입력합니다</div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">계약 정보 입력</div>
+      </div>
+      <div class="form-grid">
+
+        <div class="form-group full">
+          <label>기관명 *</label>
+          <input id="ct-기관명" placeholder="기관명 입력 시 임시ID 자동생성" oninput="previewTmpId()">
+          <div class="tmp-id-preview" id="tmpIdPreview"></div>
+        </div>
+
+        <div class="form-group">
+          <label>계약 일자</label>
+          <input id="ct-계약일자" type="date">
+        </div>
+        <div class="form-group">
+          <label>계약 기간</label>
+          <select id="ct-계약기간">
+            <option value="">선택</option>
+            <option>6개월</option><option>12개월</option>
+            <option>24개월</option><option>36개월</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>계약 시작일</label>
+          <input id="ct-계약시작일" type="date">
+        </div>
+        <div class="form-group">
+          <label>계약 종료일</label>
+          <input id="ct-계약종료일" type="date">
+        </div>
+
+        <div class="form-group">
+          <label>부모님 서비스</label>
+          <select id="ct-부모님서비스">
+            <option value="">선택</option>
+            <option>포함</option><option>미포함</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="jisa-group">
+          <label>담당 지사</label>
+          <select id="ct-담당지사">
+            <option value="">선택</option>
+            <option>한마음교육</option><option>뉴믹스에듀</option><option>동대구동심</option>
+            <option>센스교육</option><option>한결교육</option><option>디렉토리</option>
+            <option>5월5일</option><option>용인동심</option><option>즐거운교육</option>
+            <option>세모에듀</option><option>(주)더바론에듀테인먼트</option><option>아이행복EDU</option>
+            <option>문화사</option><option>전주동심</option><option>위드원에듀</option>
+            <option>동심에드피아</option><option>POC</option><option>조이에듀</option>
+            <option>다온시스템</option><option>오월오일</option><option>원주국민</option>
+            <option>차일드</option><option>수원센스</option><option>한결교육 꿈드림</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>주소 시도</label>
+          <select id="ct-주소_시도">
+            <option value="">선택</option>
+            <option>서울</option><option>경기</option><option>인천</option>
+            <option>부산</option><option>대구</option><option>광주</option>
+            <option>대전</option><option>울산</option><option>세종</option>
+            <option>강원</option><option>충북</option><option>충남</option>
+            <option>전북</option><option>전남</option><option>경북</option>
+            <option>경남</option><option>제주</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>주소 상세</label>
+          <input id="ct-주소_상세" placeholder="나머지 주소">
+        </div>
+        <div class="form-group">
+          <label>원장님 성함</label>
+          <input id="ct-원장님성함">
+        </div>
+        <div class="form-group">
+          <label>원장님 연락처</label>
+          <input id="ct-원장님연락처" placeholder="010-0000-0000">
+        </div>
+        <div class="form-group full">
+          <label>비고</label>
+          <textarea id="ct-비고" rows="3"></textarea>
+        </div>
+
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetForm()">초기화</button>
+        <button class="btn btn-primary" onclick="saveContract()">저장</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+if (!CH.requireAuth()) throw new Error('unauthorized');
+CH.renderNav('contract');
+
+// 지사 계정이면 담당지사 항목 숨기기
+if (CH.role === 'branch') {
+  document.getElementById('jisa-group').style.display = 'none';
+}
+
+// ==============================
+// 임시ID 미리보기
+// ==============================
+function previewTmpId() {
+  const 기관명  = document.getElementById('ct-기관명').value.trim();
+  const preview = document.getElementById('tmpIdPreview');
+  if (!기관명) { preview.style.display = 'none'; return; }
+
+  const cleaned   = 기관명.replace(/[^가-힣a-zA-Z0-9]/g, '');
+  const romanized = cleaned.substring(0, 6).split('').map(c => {
+    const code = c.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      const onset  = Math.floor((code - 0xAC00) / 28 / 21);
+      const onsets = ['g','kk','n','d','tt','r','m','b','pp','s','','j','jj','ch','k','t','p','h'];
+      return onsets[onset] || 'x';
+    }
+    return c.toLowerCase();
+  }).join('');
+
+  preview.textContent = `자동생성 임시ID: tmp_${romanized || 'inst'}_****`;
+  preview.style.display = 'block';
+}
+
+// ==============================
+// 계약 저장
+// ==============================
+async function saveContract() {
+  const data = {};
+  ['기관명','계약일자','계약시작일','계약종료일','계약기간',
+   '부모님서비스','담당지사','주소_시도','주소_상세',
+   '원장님성함','원장님연락처','비고'].forEach(k => {
+    const el = document.getElementById('ct-' + k);
+    if (el) data[k] = el.value.trim();
+  });
+
+  if (!data['기관명']) { CH.showToast('기관명은 필수입니다.'); return; }
+
+  // 지사 계정은 담당지사 자동 설정
+  if (CH.role === 'branch') data['담당지사'] = CH.branch;
+
+  CH.showToast('저장 중...', true);
+
+  try {
+    const result = await CH.post('saveContract', data);
+    if (result.ok || result.duplicate) {
+      CH.showToast('저장되었습니다.');
+      resetForm();
+      // 저장 후 해당 기관 상세로 이동
+      if (result.centerID) {
+        setTimeout(() => {
+          location.href = `detail.html?id=${encodeURIComponent(result.centerID)}`;
+        }, 1000);
+      }
+    } else {
+      CH.showToast('저장 오류: ' + (result.error || ''));
+    }
+  } catch(e) {
+    CH.showToast('서버 연결 오류');
+  }
+}
+
+// ==============================
+// 폼 초기화
+// ==============================
+function resetForm() {
+  ['기관명','계약일자','계약시작일','계약종료일','계약기간',
+   '부모님서비스','담당지사','주소_시도','주소_상세',
+   '원장님성함','원장님연락처','비고'].forEach(k => {
+    const el = document.getElementById('ct-' + k);
+    if (el) el.value = '';
+  });
+  const preview = document.getElementById('tmpIdPreview');
+  if (preview) preview.style.display = 'none';
+}
+</script>
+</body>
+</html>

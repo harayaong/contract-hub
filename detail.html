@@ -86,6 +86,15 @@ CH.renderNav('');
 
 const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];
 
+const DAY_KO = {
+  MONDAY: '월', TUESDAY: '화', WEDNESDAY: '수',
+  THURSDAY: '목', FRIDAY: '금', SATURDAY: '토', SUNDAY: '일'
+};
+function fmtDays(raw) {
+  if (!raw) return '';
+  return raw.split(',').map(d => DAY_KO[d.trim()] || d.trim()).join('');
+}
+
 // URL 파라미터에서 centerID 추출
 const params   = new URLSearchParams(location.search);
 const centerID = params.get('id') || '';
@@ -195,8 +204,8 @@ function renderDetail() {
       <td>${c['교실명']||''}</td>
       <td style="color:var(--text-sub)">${CH.fmtDate(c['서비스시작일'])}</td>
       <td style="color:var(--text-sub)">${CH.fmtDate(c['서비스종료일'])}</td>
-      <td>${CH.badgeStatus(c['OMS_상태'])}</td>
-      <td style="font-size:12px;color:var(--text-sub)">${c['OMS_서비스요일']||''}</td>
+      <td>${CH.badgeStatus(c['OMS_상태'] === 'APPROVED' ? 'ON' : c['OMS_상태'])}</td>
+      <td style="font-size:12px;color:var(--text-sub)">${fmtDays(c['OMS_서비스요일'])}</td>
       <td style="font-size:12px;color:var(--text-sub)">${c['OMS_스케줄']||''}</td>
     </tr>
   `).join('') : '<tr><td colspan="7" class="empty">등록된 교실 없음</td></tr>';

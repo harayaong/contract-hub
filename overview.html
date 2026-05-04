@@ -48,7 +48,14 @@
   .pipe-item.cancel .pipe-count { color: #ef4444; }
 
   /* OMS 상태 요약 */
-  .oms-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .oms-section { margin-bottom: 20px; }
+  .oms-section-title {
+    font-size: 12px; font-weight: 700; color: var(--text-sub);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .oms-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary-light); display: inline-block; }
+  .oms-grid { display: flex; gap: 12px; flex-wrap: wrap; }
   .oms-chip {
     flex: 1; min-width: 100px;
     background: var(--card); border: 1px solid var(--border);
@@ -57,10 +64,15 @@
   }
   .oms-chip-count { font-size: 22px; font-weight: 800; }
   .oms-chip-label { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+  .oms-chip-sub   { font-size: 11px; color: var(--text-hint); }
+  .oms-on     { border-left: 3px solid #10b981; }
   .oms-on     .oms-chip-count { color: #065f46; }
+  .oms-off    { border-left: 3px solid #ef4444; }
   .oms-off    .oms-chip-count { color: #991b1b; }
+  .oms-sanity { border-left: 3px solid #f59e0b; }
   .oms-sanity .oms-chip-count { color: #92400e; }
-  .oms-etc    .oms-chip-count { color: #475569; }
+  .oms-none   { border-left: 3px solid #cbd5e1; }
+  .oms-none   .oms-chip-count { color: #475569; }
 
   /* 기관 카드 */
   .inst-card {
@@ -93,6 +105,17 @@
   .badge-sanity { background: #fef3c7; color: #92400e; }
   .badge-etc    { background: #f1f5f9; color: #475569; }
 
+  /* OMS 교실 뱃지 묶음 */
+  .oms-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .oms-cls-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 99px; white-space: nowrap;
+  }
+  .ocb-on     { background: #d1fae5; color: #065f46; }
+  .ocb-off    { background: #fee2e2; color: #991b1b; }
+  .ocb-sanity { background: #fef3c7; color: #92400e; }
+  .ocb-none   { background: #f1f5f9; color: #94a3b8; }
+
   /* 필터 바 */
   .filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
   .f-select {
@@ -108,6 +131,7 @@
     .summary-value { font-size: 22px; }
     .pipe-item { min-width: 60px; padding: 10px 8px; }
     .pipe-count { font-size: 18px; }
+    .oms-chip { min-width: calc(50% - 6px); }
   }
   @media (max-width: 375px) {
     .summary-grid { grid-template-columns: repeat(2, 1fr); }
@@ -175,8 +199,16 @@
     <!-- 파이프라인 -->
     <div class="pipeline" id="pipeline"></div>
 
-    <!-- OMS 상태 요약 -->
-    <div class="oms-grid" id="omsGrid"></div>
+    <!-- OMS 실제 교실 상태 요약 -->
+    <div class="oms-section">
+      <div class="oms-section-title">
+        <span class="oms-dot"></span>
+        OMS 교실 현황 <span id="omsUpdatedAt" style="font-weight:400;color:var(--text-hint);margin-left:4px;font-size:11px"></span>
+      </div>
+      <div class="oms-grid" id="omsGrid">
+        <div class="oms-chip"><div class="oms-chip-count">-</div><div class="oms-chip-label">불러오는 중...</div></div>
+      </div>
+    </div>
 
     <!-- 기관 목록 -->
     <div class="card">
@@ -200,7 +232,14 @@
           <option value="6">서비스 오픈</option>
           <option value="7">취소</option>
         </select>
-        <input class="search-input" id="f-search" placeholder="기관명 또는 centerID" oninput="applyFilter()" style="max-width:220px">
+        <select class="f-select" id="f-oms" onchange="applyFilter()">
+          <option value="">전체 OMS</option>
+          <option value="ON">ON</option>
+          <option value="OFF">OFF</option>
+          <option value="SANITY">SANITY</option>
+          <option value="NONE">미연동</option>
+        </select>
+        <input class="search-input" id="f-search" placeholder="기관명 또는 centerID" oninput="applyFilter()" style="max-width:200px">
         <span class="result-count" id="resultCount"></span>
       </div>
 
@@ -215,7 +254,9 @@ if (!CH.requireAuth()) throw new Error('unauthorized');
 CH.renderNav('overview');
 
 const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];
-let allData = [];
+
+let allData    = [];   // 기관마스터
+let omsMap     = {};   // centerID → 교실 배열 { OMS_상태, siteID, ... }
 
 // 지사 계정이면 topbar 변경
 if (CH.role === 'branch') {
@@ -228,14 +269,32 @@ if (CH.role === 'branch') {
 loadData();
 
 // ==============================
-// 데이터 로드
+// 데이터 로드 (기관 + OMS 병렬)
 // ==============================
 async function loadData() {
   document.getElementById('inst-list').innerHTML = '<div class="empty">데이터 불러오는 중...</div>';
+  document.getElementById('omsGrid').innerHTML   = '<div class="oms-chip"><div class="oms-chip-count">-</div><div class="oms-chip-label">불러오는 중...</div></div>';
+
   try {
-    const d = await CH.get({ action: 'getInstitutions' });
-    if (!d.ok) throw new Error(d.error);
-    allData = d.data;
+    // 기관마스터 + OMS 교실 상태 동시 호출
+    const [instRes, omsRes] = await Promise.all([
+      CH.get({ action: 'getInstitutions' }),
+      CH.get({ action: 'getOmsStatus' })
+    ]);
+
+    if (!instRes.ok) throw new Error(instRes.error);
+    allData = instRes.data;
+
+    // OMS 데이터 → centerID 기준 맵 구성
+    omsMap = {};
+    if (omsRes.ok && omsRes.data) {
+      omsRes.data.forEach(cls => {
+        const cid = cls['centerID'] || '';
+        if (!cid) return;
+        if (!omsMap[cid]) omsMap[cid] = [];
+        omsMap[cid].push(cls);
+      });
+    }
 
     // 본사: 지사 드롭다운 동적 생성
     if (CH.role !== 'branch') {
@@ -251,8 +310,10 @@ async function loadData() {
 
     renderSummary(allData);
     applyFilter();
+
   } catch(e) {
     document.getElementById('inst-list').innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+    document.getElementById('omsGrid').innerHTML   = `<div class="oms-chip"><div class="oms-chip-count">-</div><div class="oms-chip-label">오류</div></div>`;
   }
 }
 
@@ -277,7 +338,6 @@ function renderSummary(data) {
     const s = parseInt(r['진행단계'] || '1') - 1;
     if (s >= 0 && s < 7) stageCounts[s]++;
   });
-
   document.getElementById('pipeline').innerHTML = STAGE_LABELS.map((label, i) => `
     <div class="pipe-item ${i === 6 ? 'cancel' : ''}">
       <div class="pipe-count">${stageCounts[i]}</div>
@@ -285,32 +345,58 @@ function renderSummary(data) {
     </div>
   `).join('');
 
-  // OMS 상태 요약 (교실 기준은 별도 API 필요해서 기관 진행단계로 대체)
-  const omsCount = { ON: 0, OFF: 0, Sanitycheck: 0, 기타: 0 };
-  data.forEach(r => {
-    const stage = parseInt(r['진행단계'] || '1');
-    if (stage === 6)      omsCount['ON']++;
-    else if (stage === 7) omsCount['OFF']++;
-    else if (stage >= 4)  omsCount['Sanitycheck']++;
-    else                  omsCount['기타']++;
+  // OMS 교실 상태 실제 집계
+  renderOmsGrid();
+}
+
+// ==============================
+// OMS 교실 상태 집계 & 렌더링
+// ==============================
+function renderOmsGrid() {
+  const count = { ON: 0, OFF: 0, SANITY: 0, NONE: 0 };
+  let totalCls = 0;
+
+  // omsMap의 모든 교실을 상태별 집계
+  Object.values(omsMap).forEach(clsList => {
+    clsList.forEach(cls => {
+      totalCls++;
+      const s = String(cls['OMS_상태'] || '').toUpperCase();
+      if (s === 'ON' || s === 'APPROVED') count['ON']++;
+      else if (s === 'OFF')               count['OFF']++;
+      else if (s.includes('SANITY'))      count['SANITY']++;
+      else                                count['NONE']++;
+    });
   });
+
+  // OMS 데이터 없는 기관의 교실 수 (교실정보 미등록)
+  allData.forEach(r => {
+    const cid = r['centerID'];
+    if (!omsMap[cid]) count['NONE']++;  // 교실 자체가 없는 기관
+  });
+
+  document.getElementById('omsUpdatedAt').textContent =
+    totalCls > 0 ? `교실 ${totalCls}개 기준` : '';
 
   document.getElementById('omsGrid').innerHTML = `
     <div class="oms-chip oms-on">
-      <div class="oms-chip-count">${omsCount['ON']}</div>
-      <div class="oms-chip-label">서비스 오픈</div>
-    </div>
-    <div class="oms-chip oms-sanity">
-      <div class="oms-chip-count">${omsCount['Sanitycheck']}</div>
-      <div class="oms-chip-label">설치 ~ 업로드</div>
-    </div>
-    <div class="oms-chip oms-etc">
-      <div class="oms-chip-count">${omsCount['기타']}</div>
-      <div class="oms-chip-label">계약 ~ 등록</div>
+      <div class="oms-chip-count">${count['ON']}</div>
+      <div class="oms-chip-label">ON</div>
+      <div class="oms-chip-sub">정상 서비스 중</div>
     </div>
     <div class="oms-chip oms-off">
-      <div class="oms-chip-count">${omsCount['OFF']}</div>
-      <div class="oms-chip-label">취소</div>
+      <div class="oms-chip-count">${count['OFF']}</div>
+      <div class="oms-chip-label">OFF</div>
+      <div class="oms-chip-sub">서비스 중단</div>
+    </div>
+    <div class="oms-chip oms-sanity">
+      <div class="oms-chip-count">${count['SANITY']}</div>
+      <div class="oms-chip-label">SANITY</div>
+      <div class="oms-chip-sub">점검 중</div>
+    </div>
+    <div class="oms-chip oms-none">
+      <div class="oms-chip-count">${count['NONE']}</div>
+      <div class="oms-chip-label">미연동</div>
+      <div class="oms-chip-sub">OMS 정보 없음</div>
     </div>
   `;
 }
@@ -321,6 +407,7 @@ function renderSummary(data) {
 function applyFilter() {
   const jisa  = document.getElementById('f-jisa')?.value  || '';
   const stage = document.getElementById('f-stage')?.value || '';
+  const oms   = document.getElementById('f-oms')?.value   || '';
   const q     = (document.getElementById('f-search')?.value || '').toLowerCase();
 
   const filtered = allData.filter(r => {
@@ -329,7 +416,25 @@ function applyFilter() {
     const matchQ     = !q    ||
       (r['기관명']  ||'').toLowerCase().includes(q) ||
       (r['centerID']||'').toLowerCase().includes(q);
-    return matchJisa && matchStage && matchQ;
+
+    // OMS 필터
+    let matchOms = true;
+    if (oms) {
+      const clsList = omsMap[r['centerID']] || [];
+      if (oms === 'NONE') {
+        matchOms = clsList.length === 0;
+      } else {
+        matchOms = clsList.some(cls => {
+          const s = String(cls['OMS_상태'] || '').toUpperCase();
+          if (oms === 'ON')     return s === 'ON' || s === 'APPROVED';
+          if (oms === 'OFF')    return s === 'OFF';
+          if (oms === 'SANITY') return s.includes('SANITY');
+          return false;
+        });
+      }
+    }
+
+    return matchJisa && matchStage && matchQ && matchOms;
   });
 
   const countEl = document.getElementById('resultCount');
@@ -367,6 +472,27 @@ function instCardHTML(r) {
 
   const tmpBadge = isTmp ? `<span class="tag-tmp">임시ID</span>` : '';
 
+  // OMS 교실 뱃지 렌더링
+  const clsList = omsMap[r['centerID']] || [];
+  let omsBadgesHtml = '';
+  if (clsList.length === 0) {
+    // 6단계(오픈) 기관인데 OMS 데이터 없으면 강조, 아니면 조용히
+    if (stage === 6) {
+      omsBadgesHtml = `<div class="oms-badges"><span class="oms-cls-badge ocb-none">OMS 미연동</span></div>`;
+    }
+  } else {
+    const badges = clsList.map(cls => {
+      const s   = String(cls['OMS_상태'] || '').toUpperCase();
+      const sid = cls['siteID'] || '';
+      let cls2  = 'ocb-none';
+      if (s === 'ON' || s === 'APPROVED') cls2 = 'ocb-on';
+      else if (s === 'OFF')               cls2 = 'ocb-off';
+      else if (s.includes('SANITY'))      cls2 = 'ocb-sanity';
+      return `<span class="oms-cls-badge ${cls2}" title="${sid}">${cls['OMS_상태'] || '-'}</span>`;
+    }).join('');
+    omsBadgesHtml = `<div class="oms-badges">${badges}</div>`;
+  }
+
   return `
     <div class="inst-card" onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
       <div style="flex:1;min-width:0">
@@ -378,6 +504,7 @@ function instCardHTML(r) {
           ${r['centerID']} · ${r['담당지사']||'-'} · ${r['주소_시도']||'-'}
         </div>
         <div class="inst-stage-bar">${pips}</div>
+        ${omsBadgesHtml}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <span class="stage-tag ${tagCls}">${tagLabel}</span>

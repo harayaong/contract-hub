@@ -1,45 +1,191 @@
 <!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
-<!-- detail.html -->
+<!-- overview.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📋 Contract Hub — 기관 상세</title>
+<title>📋 Contract Hub — 전체 현황</title>
 <script src="common.js"></script>
 </head>
 <body>
 <script> CH.injectStyle(); </script>
 
 <style>
-  .detail-back { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); cursor: pointer; margin-bottom: 20px; background: none; border: none; font-family: inherit; padding: 0; }
-  .detail-back:hover { color: var(--primary); }
-  .stage-wrap { display: flex; align-items: center; overflow-x: auto; padding-bottom: 4px; margin-bottom: 24px; }
-  .stage-item { display: flex; align-items: center; flex-shrink: 0; }
-  .stage-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 2px solid var(--border); background: var(--card); color: var(--text-hint); flex-shrink: 0; }
-  .stage-dot.done    { background: var(--primary);       border-color: var(--primary);       color: #fff; }
-  .stage-dot.current { background: var(--primary-light); border-color: var(--primary-light); color: #fff; }
-  .stage-dot.cancel  { background: #ef4444;              border-color: #ef4444;              color: #fff; }
-  .stage-label { font-size: 11px; color: var(--text-hint); margin: 0 6px; white-space: nowrap; }
-  .stage-label.done    { color: var(--primary);       font-weight: 600; }
-  .stage-label.current { color: var(--primary-light); font-weight: 700; }
-  .stage-line { width: 24px; height: 2px; background: var(--border); flex-shrink: 0; }
-  .stage-line.done { background: var(--primary); }
-  .confirm-id-box { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-  .confirm-id-box input { flex: 1; min-width: 140px; padding: 8px 12px; border: 1px solid #fcd34d; border-radius: 8px; font-size: 14px; outline: none; }
-  .confirm-id-box input:focus { border-color: var(--primary-light); }
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; }
-  .info-item span:first-child { display: block; color: var(--text-hint); margin-bottom: 2px; }
-  .info-item strong { color: var(--text); }
-  .cls-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;
+  }
+  .summary-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .summary-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+  .summary-value { font-size: 28px; font-weight: 800; line-height: 1; }
+  .summary-sub   { font-size: 12px; }
+  .summary-card.accent-blue  {
+    background: #dbeafe; border-color: #93c5fd;
+  }
+  .summary-card.accent-blue  .summary-label { color: #1e40af; }
+  .summary-card.accent-blue  .summary-value { color: #1e3a8a; }
+  .summary-card.accent-blue  .summary-sub   { color: #3b82f6; }
+  .summary-card.accent-amber {
+    background: #fef3c7; border-color: #fcd34d;
+  }
+  .summary-card.accent-amber .summary-label { color: #b45309; }
+  .summary-card.accent-amber .summary-value { color: #92400e; }
+  .summary-card.accent-amber .summary-sub   { color: #d97706; }
+  .summary-card.accent-green {
+    background: #d1fae5; border-color: #6ee7b7;
+  }
+  .summary-card.accent-green .summary-label { color: #047857; }
+  .summary-card.accent-green .summary-value { color: #065f46; }
+  .summary-card.accent-green .summary-sub   { color: #059669; }
+  .summary-card.accent-red   {
+    background: #fee2e2; border-color: #fca5a5;
+  }
+  .summary-card.accent-red   .summary-label { color: #b91c1c; }
+  .summary-card.accent-red   .summary-value { color: #991b1b; }
+  .summary-card.accent-red   .summary-sub   { color: #dc2626; }
+
+  /* 파이프라인 */
+  .pipeline { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+  .pipe-item {
+    flex: 1; min-width: 80px;
+    background: var(--card); border: 1px solid var(--border);
+    padding: 14px 12px; text-align: center;
+    position: relative;
+  }
+  .pipe-item:first-child { border-radius: 12px 0 0 12px; }
+  .pipe-item:last-child  { border-radius: 0 12px 12px 0; }
+  .pipe-item:not(:last-child)::after {
+    content: '›'; position: absolute; right: -8px; top: 50%;
+    transform: translateY(-50%); color: var(--text-hint);
+    font-size: 18px; z-index: 1;
+  }
+  .pipe-count { font-size: 22px; font-weight: 800; color: var(--primary); }
+  .pipe-label { font-size: 11px; color: var(--text-sub); margin-top: 4px; font-weight: 600; }
+  .pipe-item.cancel .pipe-count { color: #ef4444; }
+
+  /* OMS 상태 요약 */
+  .oms-section { margin-bottom: 20px; }
+  .oms-section-title {
+    font-size: 12px; font-weight: 700; color: var(--text-sub);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .oms-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary-light); display: inline-block; }
+  .oms-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+  .oms-chip {
+    flex: 1; min-width: 100px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .oms-chip-count { font-size: 22px; font-weight: 800; }
+  .oms-chip-label { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+  .oms-chip-sub   { font-size: 11px; color: var(--text-hint); }
+  .oms-on     { background: #d1fae5; border-color: #6ee7b7; }
+  .oms-on     .oms-chip-count { color: #065f46; }
+  .oms-on     .oms-chip-label { color: #047857; }
+  .oms-on     .oms-chip-sub   { color: #059669; }
+  .oms-off    { background: #fee2e2; border-color: #fca5a5; }
+  .oms-off    .oms-chip-count { color: #991b1b; }
+  .oms-off    .oms-chip-label { color: #b91c1c; }
+  .oms-off    .oms-chip-sub   { color: #dc2626; }
+  .oms-sanity { background: #fef3c7; border-color: #fcd34d; }
+  .oms-sanity .oms-chip-count { color: #92400e; }
+  .oms-sanity .oms-chip-label { color: #b45309; }
+  .oms-sanity .oms-chip-sub   { color: #d97706; }
+  .oms-none   { background: #f1f5f9; border-color: #cbd5e1; }
+  .oms-none   .oms-chip-count { color: #334155; }
+  .oms-none   .oms-chip-label { color: #475569; }
+  .oms-none   .oms-chip-sub   { color: #64748b; }
+
+  /* 기관 카드 */
+  .inst-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 8px;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .inst-card:hover { border-color: var(--primary-light); box-shadow: 0 2px 12px rgba(37,99,235,0.08); }
+  .inst-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .inst-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .inst-meta { font-size: 12px; color: var(--text-hint); }
+  .inst-stage-bar { display: flex; gap: 4px; margin-top: 8px; }
+  .stage-pip { width: 20px; height: 6px; border-radius: 3px; background: var(--border); }
+  .stage-pip.done    { background: var(--primary); }
+  .stage-pip.current { background: var(--primary-light); }
+  .stage-pip.cancel  { background: #fca5a5; }
+  .stage-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+  .tag-1 { background: #fef3c7; color: #92400e; }
+  .tag-2 { background: #dbeafe; color: #1e40af; }
+  .tag-3 { background: #ede9fe; color: #5b21b6; }
+  .tag-4 { background: #d1fae5; color: #065f46; }
+  .tag-5 { background: #d1fae5; color: #065f46; }
+  .tag-6 { background: #0f172a; color: #fff; }
+  .tag-7 { background: #fee2e2; color: #991b1b; }
   .tag-tmp { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #92400e; }
-  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
   .badge-on     { background: #d1fae5; color: #065f46; }
   .badge-off    { background: #fee2e2; color: #991b1b; }
   .badge-sanity { background: #fef3c7; color: #92400e; }
   .badge-etc    { background: #f1f5f9; color: #475569; }
+
+  /* OMS 교실 요약 */
+  .oms-summary {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px; flex-wrap: wrap;
+  }
+  .oms-summary-label {
+    font-size: 11px; color: var(--text-hint); flex-shrink: 0;
+  }
+  .oms-cls-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
+    border-radius: 99px; white-space: nowrap;
+  }
+  .ocb-on     { background: #d1fae5; color: #065f46; }
+  .ocb-off    { background: #fee2e2; color: #991b1b; }
+  .ocb-sanity { background: #fef3c7; color: #92400e; }
+  .ocb-none   { background: #f1f5f9; color: #94a3b8; }
+
+  /* 필터 바 */
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .f-select {
+    padding: 9px 12px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 14px; background: #f8fafc;
+    outline: none; font-family: inherit; transition: border-color 0.2s;
+  }
+  .f-select:focus { border-color: var(--primary-light); background: #fff; }
+  .result-count { font-size: 13px; color: var(--text-hint); margin-left: auto; }
+
+  /* 계약 만료 D-day */
+  .dday { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
+  .dday-danger  { background: #fee2e2; color: #991b1b; }
+  .dday-warn    { background: #fef3c7; color: #92400e; }
+  .dday-ok      { background: #f1f5f9; color: #475569; }
+  .dday-expired { background: #1e293b; color: #fff; }
+
+  /* branch 전용 알림 배너 */
+  .branch-alert {
+    background: #fffbeb; border: 1px solid #fcd34d;
+    border-radius: 12px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px; font-size: 13px; color: #92400e;
+    font-weight: 600;
+  }
+
   @media (max-width: 768px) {
-    .info-grid { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .summary-value { font-size: 22px; }
+    .pipe-item { min-width: 60px; padding: 10px 8px; }
+    .pipe-count { font-size: 18px; }
+    .oms-chip { min-width: calc(50% - 6px); }
+  }
+  @media (max-width: 375px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .oms-chip { min-width: 80px; }
   }
 </style>
 
@@ -70,301 +216,473 @@
 <div class="main">
   <div class="topbar">
     <div>
-      <div class="topbar-title">기관 상세</div>
-      <div class="topbar-sub">기관 상세 정보 및 단계 관리</div>
+      <div class="topbar-title" id="topbarTitle">계약 현황</div>
+      <div class="topbar-sub" id="topbarSub">기관별 서비스 진행 현황을 확인합니다</div>
     </div>
   </div>
   <div class="content">
-    <button class="detail-back" onclick="history.back()">← 목록으로</button>
-    <div id="detail-content"><div class="empty">데이터 불러오는 중...</div></div>
+
+    <!-- branch 전용 만료 임박 알림 (로드 후 동적 삽입) -->
+    <div id="branch-alerts"></div>
+
+    <!-- 요약 카드 -->
+    <div class="summary-grid" id="summaryGrid">
+      <div class="summary-card accent-blue">
+        <div class="summary-label">전체 기관</div>
+        <div class="summary-value" id="s-total">-</div>
+        <div class="summary-sub">등록된 전체 기관 수</div>
+      </div>
+      <div class="summary-card accent-amber">
+        <div class="summary-label">설치 진행 중</div>
+        <div class="summary-value" id="s-progress">-</div>
+        <div class="summary-sub">1~5단계</div>
+      </div>
+      <div class="summary-card accent-green">
+        <div class="summary-label">서비스 오픈</div>
+        <div class="summary-value" id="s-open">-</div>
+        <div class="summary-sub">6단계 완료</div>
+      </div>
+      <div class="summary-card accent-red">
+        <div class="summary-label">서비스 취소</div>
+        <div class="summary-value" id="s-cancel">-</div>
+        <div class="summary-sub">계약 취소</div>
+      </div>
+    </div>
+
+    <!-- 파이프라인 -->
+    <div class="pipeline" id="pipeline"></div>
+
+    <!-- OMS 실제 교실 상태 요약 -->
+    <div class="oms-section">
+      <div class="oms-section-title">
+        <span class="oms-dot"></span>
+        OMS 교실 현황 <span id="omsUpdatedAt" style="font-weight:400;color:var(--text-hint);margin-left:4px;font-size:11px"></span>
+      </div>
+      <div class="oms-grid" id="omsGrid">
+        <div class="oms-chip"><div class="oms-chip-count">-</div><div class="oms-chip-label">불러오는 중...</div></div>
+      </div>
+    </div>
+
+    <!-- 기관 목록 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">기관 목록</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadData()">새로고침</button>
+      </div>
+
+      <!-- 본사만 지사 필터 표시 -->
+      <div class="filter-bar" id="filterBar" style="display:none">
+        <select class="f-select" id="f-jisa" onchange="applyFilter()">
+          <option value="">전체 지사</option>
+        </select>
+        <select class="f-select" id="f-stage" onchange="applyFilter()">
+          <option value="">전체 단계</option>
+          <option value="1">계약</option>
+          <option value="2">Admin 등록</option>
+          <option value="3">siteID 부여</option>
+          <option value="4">설치 완료</option>
+          <option value="5">업로드 확인</option>
+          <option value="6">서비스 오픈</option>
+          <option value="7">취소</option>
+        </select>
+        <select class="f-select" id="f-oms" onchange="applyFilter()">
+          <option value="">전체 OMS</option>
+          <option value="ON">ON</option>
+          <option value="OFF">OFF</option>
+          <option value="SANITY">SANITY</option>
+          <option value="NONE">미연동</option>
+        </select>
+        <input class="search-input" id="f-search" placeholder="기관명 또는 centerID" oninput="applyFilter()" style="max-width:200px">
+        <span class="result-count" id="resultCount"></span>
+      </div>
+
+      <div id="inst-list"><div class="empty">데이터 불러오는 중...</div></div>
+    </div>
+
   </div>
 </div>
 
 <script>
 if (!CH.requireAuth()) throw new Error('unauthorized');
-CH.renderNav('');
+CH.renderNav('overview');
 
 const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];
 
-const DAY_KO = {
-  MONDAY: '월', TUESDAY: '화', WEDNESDAY: '수',
-  THURSDAY: '목', FRIDAY: '금', SATURDAY: '토', SUNDAY: '일'
-};
-function fmtDays(raw) {
-  if (!raw) return '';
-  return raw.split(',').map(d => DAY_KO[d.trim()] || d.trim()).join('');
-}
+const isBranch = CH.role === 'branch';
 
-// URL 파라미터에서 centerID 추출
-const params   = new URLSearchParams(location.search);
-const centerID = params.get('id') || '';
+let allData = [];
+let omsMap  = {};
+let ctMap   = {};  // centerID → 최신 계약정보
 
-if (!centerID) {
-  document.getElementById('detail-content').innerHTML =
-    '<div class="empty">기관 ID가 없습니다.</div>';
+if (isBranch) {
+  document.getElementById('topbarTitle').textContent = `${CH.branch} 현황`;
+  document.getElementById('topbarSub').textContent   = '담당 기관의 계약 및 서비스 현황입니다';
 } else {
-  loadDetail();
+  document.getElementById('filterBar').style.display = 'flex';
 }
 
 // ==============================
-// 데이터 로드
+// D-day 계산
 // ==============================
-let inst = null, clsData = [], ctData = null;
+function calcDday(endDateStr) {
+  if (!endDateStr) return null;
+  const end = new Date(endDateStr);
+  const now = new Date(); now.setHours(0,0,0,0); end.setHours(0,0,0,0);
+  return Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+}
 
-async function loadDetail() {
+function ddayBadge(endDateStr) {
+  const d = calcDday(endDateStr);
+  if (d === null) return '';
+  if (d < 0)   return `<span class="dday dday-expired">만료됨</span>`;
+  if (d === 0) return `<span class="dday dday-danger">D-day</span>`;
+  if (d <= 30) return `<span class="dday dday-danger">D-${d}</span>`;
+  if (d <= 90) return `<span class="dday dday-warn">D-${d}</span>`;
+  return `<span class="dday dday-ok">D-${d}</span>`;
+}
+
+// ==============================
+// OMS 상태값 정규화 (APPROVED → ON)
+// ==============================
+function normalizeOmsStatus(raw) {
+  const s = String(raw || '').toUpperCase();
+  if (s === 'ON' || s === 'APPROVED') return 'ON';
+  if (s === 'OFF')                    return 'OFF';
+  if (s.includes('SANITY'))           return 'SANITY';
+  return s || '-';
+}
+
+loadData();
+
+// ==============================
+// 데이터 로드 (기관 + OMS 병렬)
+// ==============================
+async function loadData() {
+  document.getElementById('inst-list').innerHTML = '<div class="empty">데이터 불러오는 중...</div>';
+  document.getElementById('omsGrid').innerHTML   = '<div class="oms-chip"><div class="oms-chip-count">-</div><div class="oms-chip-label">불러오는 중...</div></div>';
+
   try {
-    const [instRes, clsRes, ctRes] = await Promise.all([
+    const [instRes, omsRes, ctRes] = await Promise.all([
       CH.get({ action: 'getInstitutions' }),
-      CH.get({ action: 'getClassrooms', centerID }),
-      CH.get({ action: 'getContracts',  centerID }),
+      CH.get({ action: 'getOmsStatus' }),
+      CH.get({ action: 'getContracts' }),
     ]);
 
     if (!instRes.ok) throw new Error(instRes.error);
-    inst    = (instRes.data || []).find(x => x['centerID'] === centerID) || null;
-    clsData = clsRes.ok  ? clsRes.data  : [];
-    ctData  = ctRes.ok && ctRes.data.length ? ctRes.data[0] : null;
+    allData = instRes.data;
 
-    if (!inst) {
-      document.getElementById('detail-content').innerHTML =
-        '<div class="empty">기관을 찾을 수 없습니다.</div>';
-      return;
+    // OMS 맵
+    omsMap = {};
+    if (omsRes.ok && omsRes.data) {
+      omsRes.data.forEach(cls => {
+        const cid = cls['centerID'] || '';
+        if (!cid) return;
+        if (!omsMap[cid]) omsMap[cid] = [];
+        omsMap[cid].push(cls);
+      });
     }
 
-    renderDetail();
+    // 계약정보 맵 (centerID → 최신)
+    ctMap = {};
+    if (ctRes.ok && ctRes.data) {
+      ctRes.data.forEach(ct => { ctMap[ct['centerID']] = ct; });
+    }
+
+    // 본사만 지사 드롭다운
+    if (!isBranch) {
+      const jisaSet = new Set(allData.map(r => r['담당지사']).filter(Boolean));
+      const sel = document.getElementById('f-jisa');
+      sel.innerHTML = '<option value="">전체 지사</option>';
+      [...jisaSet].sort().forEach(v => {
+        const o = document.createElement('option');
+        o.value = o.textContent = v;
+        sel.appendChild(o);
+      });
+    }
+
+    // branch 전용 만료 임박 알림
+    if (isBranch) renderBranchAlerts();
+
+    renderSummary(allData);
+    applyFilter();
+
   } catch(e) {
-    document.getElementById('detail-content').innerHTML =
-      `<div class="empty">오류: ${e.message}</div>`;
+    document.getElementById('inst-list').innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+    document.getElementById('omsGrid').innerHTML   = `<div class="oms-chip"><div class="oms-chip-count">-</div><div class="oms-chip-label">오류</div></div>`;
   }
 }
 
 // ==============================
-// 상세 렌더링
+// branch 전용 만료 임박 알림 배너
 // ==============================
-function renderDetail() {
-  const stage = parseInt(inst['진행단계'] || '1');
-  const isTmp = inst['임시ID여부'] === 'Y';
+function renderBranchAlerts() {
+  const alerts = [];
 
-  // 진행단계 바
-  const stageBar = STAGE_LABELS.map((label, i) => {
-    const s = i + 1;
-    let dotCls = '', labelCls = '', lineCls = '';
-    if (stage === 7) {
-      dotCls   = s <= 4 ? 'done' : s === 7 ? 'cancel' : '';
-      labelCls = s <= 4 ? 'done' : s === 7 ? 'current' : '';
-      lineCls  = s <= 4 ? 'done' : '';
-    } else {
-      dotCls   = s < stage ? 'done' : s === stage ? 'current' : '';
-      labelCls = s < stage ? 'done' : s === stage ? 'current' : '';
-      lineCls  = s < stage ? 'done' : '';
+  // 계약 만료 90일 이내 기관
+  allData.forEach(r => {
+    const ct = ctMap[r['centerID']];
+    if (!ct || !ct['계약종료일']) return;
+    const d = calcDday(ct['계약종료일']);
+    if (d !== null && d <= 90 && r['진행단계'] !== '7') {
+      alerts.push({ r, ct, d });
     }
-    return `
-      <div class="stage-item">
-        <div class="stage-dot ${dotCls}">${s < stage && stage !== 7 ? '✓' : s}</div>
-        <span class="stage-label ${labelCls}">${label}</span>
+  });
+
+  // OFF 교실 있는 기관
+  const offInsts = allData.filter(r => {
+    const cls = omsMap[r['centerID']] || [];
+    return cls.some(c => normalizeOmsStatus(c['OMS_상태']) === 'OFF');
+  });
+
+  const el = document.getElementById('branch-alerts');
+  if (!el) return;
+
+  const html = [];
+
+  if (alerts.length > 0) {
+    alerts.sort((a, b) => a.d - b.d);
+    const items = alerts.map(({ r, d }) => {
+      const label = d < 0 ? '만료됨' : d === 0 ? 'D-day' : `D-${d}`;
+      const color = d <= 30 ? '#991b1b' : '#92400e';
+      return `<span style="margin-right:12px;color:${color}">⚠️ <strong>${r['기관명']}</strong> ${label}</span>`;
+    }).join('');
+    html.push(`
+      <div class="branch-alert">
+        📅 계약 만료 임박 — ${items}
       </div>
-      ${i < STAGE_LABELS.length - 1 ? `<div class="stage-line ${lineCls}"></div>` : ''}
-    `;
+    `);
+  }
+
+  if (offInsts.length > 0) {
+    const items = offInsts.map(r =>
+      `<strong>${r['기관명']}</strong>`
+    ).join(', ');
+    html.push(`
+      <div class="branch-alert" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">
+        🔴 OFF 교실 있음 — ${items}
+      </div>
+    `);
+  }
+
+  el.innerHTML = html.join('');
+}
+
+// ==============================
+// 요약 카드 + 파이프라인 + OMS
+// ==============================
+function renderSummary(data) {
+  // 요약 카드
+  const total    = data.length;
+  const open     = data.filter(r => r['진행단계'] === '6').length;
+  const cancel   = data.filter(r => r['진행단계'] === '7').length;
+  const progress = total - open - cancel;
+
+  document.getElementById('s-total').textContent    = total;
+  document.getElementById('s-open').textContent     = open;
+  document.getElementById('s-progress').textContent = progress;
+  document.getElementById('s-cancel').textContent   = cancel;
+
+  // 파이프라인
+  const stageCounts = [0,0,0,0,0,0,0];
+  data.forEach(r => {
+    const s = parseInt(r['진행단계'] || '1') - 1;
+    if (s >= 0 && s < 7) stageCounts[s]++;
+  });
+  document.getElementById('pipeline').innerHTML = STAGE_LABELS.map((label, i) => `
+    <div class="pipe-item ${i === 6 ? 'cancel' : ''}">
+      <div class="pipe-count">${stageCounts[i]}</div>
+      <div class="pipe-label">${label}</div>
+    </div>
+  `).join('');
+
+  // OMS 교실 상태 실제 집계
+  renderOmsGrid();
+}
+
+// ==============================
+// OMS 교실 상태 집계 & 렌더링
+// ==============================
+function renderOmsGrid() {
+  const count = { ON: 0, OFF: 0, SANITY: 0, NONE: 0 };
+  let totalCls = 0;
+
+  // omsMap의 모든 교실을 상태별 집계
+  Object.values(omsMap).forEach(clsList => {
+    clsList.forEach(cls => {
+      totalCls++;
+      const s = normalizeOmsStatus(cls['OMS_상태']);
+      if (s === 'ON')         count['ON']++;
+      else if (s === 'OFF')   count['OFF']++;
+      else if (s === 'SANITY') count['SANITY']++;
+      else                    count['NONE']++;
+    });
+  });
+
+  // OMS 데이터 없는 기관의 교실 수 (교실정보 미등록)
+  allData.forEach(r => {
+    const cid = r['centerID'];
+    if (!omsMap[cid]) count['NONE']++;  // 교실 자체가 없는 기관
+  });
+
+  document.getElementById('omsUpdatedAt').textContent =
+    totalCls > 0 ? `교실 ${totalCls}개 기준` : '';
+
+  document.getElementById('omsGrid').innerHTML = `
+    <div class="oms-chip oms-on">
+      <div class="oms-chip-count">${count['ON']}</div>
+      <div class="oms-chip-label">ON</div>
+      <div class="oms-chip-sub">정상 서비스 중</div>
+    </div>
+    <div class="oms-chip oms-off">
+      <div class="oms-chip-count">${count['OFF']}</div>
+      <div class="oms-chip-label">OFF</div>
+      <div class="oms-chip-sub">서비스 중단</div>
+    </div>
+    <div class="oms-chip oms-sanity">
+      <div class="oms-chip-count">${count['SANITY']}</div>
+      <div class="oms-chip-label">SANITY</div>
+      <div class="oms-chip-sub">점검 중</div>
+    </div>
+    <div class="oms-chip oms-none">
+      <div class="oms-chip-count">${count['NONE']}</div>
+      <div class="oms-chip-label">미연동</div>
+      <div class="oms-chip-sub">OMS 정보 없음</div>
+    </div>
+  `;
+}
+
+// ==============================
+// 필터 적용
+// ==============================
+function applyFilter() {
+  const jisa  = document.getElementById('f-jisa')?.value  || '';
+  const stage = document.getElementById('f-stage')?.value || '';
+  const oms   = document.getElementById('f-oms')?.value   || '';
+  const q     = (document.getElementById('f-search')?.value || '').toLowerCase();
+
+  const filtered = allData.filter(r => {
+    const matchJisa  = !jisa  || r['담당지사']  === jisa;
+    const matchStage = !stage || r['진행단계']  === stage;
+    const matchQ     = !q    ||
+      (r['기관명']  ||'').toLowerCase().includes(q) ||
+      (r['centerID']||'').toLowerCase().includes(q);
+
+    // OMS 필터
+    let matchOms = true;
+    if (oms) {
+      const clsList = omsMap[r['centerID']] || [];
+      if (oms === 'NONE') {
+        matchOms = clsList.length === 0;
+      } else {
+        matchOms = clsList.some(cls => {
+          const s = String(cls['OMS_상태'] || '').toUpperCase();
+          if (oms === 'ON')     return s === 'ON' || s === 'APPROVED';
+          if (oms === 'OFF')    return s === 'OFF';
+          if (oms === 'SANITY') return s.includes('SANITY');
+          return false;
+        });
+      }
+    }
+
+    return matchJisa && matchStage && matchQ && matchOms;
+  });
+
+  const countEl = document.getElementById('resultCount');
+  if (countEl) countEl.textContent = `${filtered.length}건`;
+
+  renderList(filtered);
+}
+
+// ==============================
+// 기관 목록 렌더링
+// ==============================
+function renderList(data) {
+  const el = document.getElementById('inst-list');
+  if (!data.length) {
+    el.innerHTML = '<div class="empty">조건에 맞는 기관이 없습니다</div>';
+    return;
+  }
+  el.innerHTML = data.map(r => instCardHTML(r)).join('');
+}
+
+function instCardHTML(r) {
+  const stage    = parseInt(r['진행단계'] || '1');
+  const isTmp    = r['임시ID여부'] === 'Y';
+  const tagCls   = `tag-${stage}`;
+  const tagLabel = STAGE_LABELS[stage - 1] || '';
+
+  const pips = STAGE_LABELS.map((_, i) => {
+    const s = i + 1;
+    let cls = '';
+    if (stage === 7)      cls = s <= 4 ? 'done' : 'cancel';
+    else if (s < stage)   cls = 'done';
+    else if (s === stage) cls = 'current';
+    return `<div class="stage-pip ${cls}"></div>`;
   }).join('');
 
-  // 임시ID 확정 박스
-  const confirmBox = isTmp ? `
-    <div class="confirm-id-box">
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ 임시ID 사용 중 — siteID 확정 필요</div>
-        <div style="font-size:12px;color:#92400e">현재: <strong>${inst['centerID']}</strong></div>
-      </div>
-      <input id="newSiteId" placeholder="실제 prefix 입력 (예: dgbom)">
-      <button class="btn btn-warn btn-sm" onclick="confirmSiteId()">확정</button>
-    </div>
-  ` : '';
+  const tmpBadge = isTmp ? `<span class="tag-tmp">임시ID</span>` : '';
 
-  // 다음 단계 버튼
-  const stageBtn = CH.role !== 'branch' && stage < 6 ? `
-    <button class="btn btn-primary btn-sm" onclick="advanceStage(${stage + 1})">
-      다음 단계 → ${STAGE_LABELS[stage] || ''}
-    </button>
-  ` : '';
+  // 계약 만료 D-day
+  const ct = ctMap[r['centerID']];
+  const dday = ct ? ddayBadge(ct['계약종료일']) : '';
 
-  // 실제 운영 교실수 (활성 교실만 집계)
-  const 활성교실수 = clsData.filter(c => c['교실상태'] !== '비활성').length;
-  const 계약교실수 = ctData ? (ctData['교실수'] || '-') : '-';
-  const 교실수차이 = ctData && 활성교실수 !== parseInt(계약교실수)
-    ? `<span style="font-size:11px;color:#f59e0b;margin-left:6px">▲ 계약과 다름</span>` : '';
-
-  // 계약 정보
-  const ctHTML = ctData ? `
-    <div class="info-grid">
-      <div class="info-item"><span>계약일자</span><strong>${CH.fmtDate(ctData['계약일자'])}</strong></div>
-      <div class="info-item"><span>계약기간</span><strong>${ctData['계약기간'] ? ctData['계약기간'] + '년' : '-'}</strong></div>
-      <div class="info-item"><span>계약시작일</span><strong>${CH.fmtDate(ctData['계약시작일'])}</strong></div>
-      <div class="info-item"><span>계약종료일</span><strong>${CH.fmtDate(ctData['계약종료일'])}</strong></div>
-      <div class="info-item"><span>플랜</span><strong>${ctData['플랜']||'-'}</strong></div>
-      <div class="info-item"><span>입력지사</span><strong>${ctData['입력자지사']||'-'}</strong></div>
-      <div class="info-item">
-        <span>계약 교실수</span>
-        <strong>${계약교실수}개</strong>
-      </div>
-      <div class="info-item">
-        <span>실제 운영 교실수</span>
-        <strong style="display:inline-flex;align-items:center">${활성교실수}개${교실수차이}</strong>
-      </div>
-    </div>
-  ` : '<div class="empty" style="padding:20px">계약 정보 없음</div>';
-
-  // 교실 목록
-  const clsRows = clsData.length ? clsData.map(c => `
-    <tr>
-      <td><strong>${c['siteID']||''}</strong></td>
-      <td>${c['교실명']||''}</td>
-      <td style="color:var(--text-sub)">${CH.fmtDate(c['서비스시작일'])}</td>
-      <td style="color:var(--text-sub)">${CH.fmtDate(c['서비스종료일'])}</td>
-      <td>${CH.badgeStatus(c['OMS_상태'] === 'APPROVED' ? 'ON' : c['OMS_상태'])}</td>
-      <td style="font-size:12px;color:var(--text-sub)">${fmtDays(c['OMS_서비스요일'])}</td>
-      <td style="font-size:12px;color:var(--text-sub)">${c['OMS_스케줄']||''}</td>
-    </tr>
-  `).join('') : '<tr><td colspan="7" class="empty">등록된 교실 없음</td></tr>';
-
-  const tmpBadge = isTmp ? `<span class="tag-tmp" style="margin-left:8px">임시ID</span>` : '';
-
-  document.getElementById('detail-content').innerHTML = `
-
-    <!-- 기관 기본정보 -->
-    <div class="card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-        <div>
-          <div style="font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            ${inst['기관명']||inst['centerID']}${tmpBadge}
-            ${inst['고객표시명'] && inst['고객표시명'] !== inst['기관명']
-              ? `<span style="font-size:13px;font-weight:400;color:var(--text-hint)">(${inst['고객표시명']})</span>` : ''}
-          </div>
-          <div style="font-size:13px;color:var(--text-hint);margin-top:4px">
-            ${inst['centerID']} · ${inst['담당지사']||'-'} · ${inst['주소_시도']||''} ${inst['주소_군구']||''} ${inst['주소_상세']||''}
-          </div>
-          <div style="font-size:13px;color:var(--text-hint);margin-top:2px">
-            원장님: ${inst['원장님성함']||'-'} · ${inst['원장님연락처']||'-'}
-            ${inst['대표교사연락처'] ? ` · 대표교사: ${inst['대표교사연락처']}` : ''}
-          </div>
-        </div>
-        ${stageBtn}
-      </div>
-      ${confirmBox}
-      <div class="stage-wrap">${stageBar}</div>
-    </div>
-
-    <!-- 계약 정보 -->
-    <div class="card">
-      <div class="card-header"><div class="card-title">계약 정보</div></div>
-      ${ctHTML}
-    </div>
-
-    <!-- 교실 목록 -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">교실 목록</div>
-        ${CH.role !== 'branch' ? `<button class="btn btn-secondary btn-sm" onclick="toggleAddClassroom()">+ 교실 추가</button>` : ''}
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>siteID</th><th>교실명</th><th>서비스 시작일</th>
-              <th>서비스 종료일</th><th>OMS 상태</th><th>서비스 요일</th><th>스케줄</th>
-            </tr>
-          </thead>
-          <tbody id="cls-tbody">${clsRows}</tbody>
-        </table>
-      </div>
-      <div id="add-cls-wrap"></div>
-    </div>
-  `;
-}
-
-// ==============================
-// siteID 확정
-// ==============================
-async function confirmSiteId() {
-  const newId = (document.getElementById('newSiteId')?.value || '').trim();
-  if (!newId)              { CH.showToast('실제 prefix를 입력해주세요.'); return; }
-  if (newId.startsWith('tmp_')) { CH.showToast('tmp_ 로 시작하면 안돼요.'); return; }
-
-  const result = await CH.post('confirmSiteId', { oldId: centerID, newId });
-  if (result.ok || result.duplicate) {
-    CH.showToast('siteID가 확정되었습니다.');
-    location.href = `detail.html?id=${encodeURIComponent(newId)}`;
+  // OMS 교실 요약 렌더링
+  const clsList = omsMap[r['centerID']] || [];
+  let omsSummaryHtml = '';
+  if (clsList.length === 0) {
+    // 6단계(오픈) 기관인데 OMS 없으면 강조, 아니면 조용히
+    if (stage === 6) {
+      omsSummaryHtml = `
+        <div class="oms-summary">
+          <span class="oms-summary-label">교실 0개</span>
+          <span class="oms-cls-badge ocb-none">OMS 미연동</span>
+        </div>`;
+    }
   } else {
-    CH.showToast('오류: ' + (result.error || ''));
+    // 상태별 집계
+    const cnt = { ON: 0, OFF: 0, SANITY: 0, 기타: 0 };
+    clsList.forEach(cls => {
+      const s = normalizeOmsStatus(cls['OMS_상태']);
+      if (s === 'ON')         cnt.ON++;
+      else if (s === 'OFF')   cnt.OFF++;
+      else if (s === 'SANITY') cnt.SANITY++;
+      else                    cnt.기타++;
+    });
+
+    const total = clsList.length;
+    const badges = [];
+    if (cnt.ON     > 0) badges.push(`<span class="oms-cls-badge ocb-on">ON ${cnt.ON}</span>`);
+    if (cnt.OFF    > 0) badges.push(`<span class="oms-cls-badge ocb-off">OFF ${cnt.OFF}</span>`);
+    if (cnt.SANITY > 0) badges.push(`<span class="oms-cls-badge ocb-sanity">SANITY ${cnt.SANITY}</span>`);
+    if (cnt.기타   > 0) badges.push(`<span class="oms-cls-badge ocb-none">기타 ${cnt.기타}</span>`);
+
+    omsSummaryHtml = `
+      <div class="oms-summary">
+        <span class="oms-summary-label">교실 ${total}개</span>
+        ${badges.join('')}
+      </div>`;
   }
-}
 
-// ==============================
-// 단계 진행
-// ==============================
-async function advanceStage(newStage) {
-  const result = await CH.post('updateStage', { 기관ID: centerID, stage: newStage });
-  if (result.ok || result.duplicate) {
-    CH.showToast(`${STAGE_LABELS[newStage - 1]} 단계로 업데이트됐습니다.`);
-    inst['진행단계'] = String(newStage);
-    renderDetail();
-  } else {
-    CH.showToast('오류: ' + (result.error || ''));
-  }
-}
-
-// ==============================
-// 교실 추가
-// ==============================
-function toggleAddClassroom() {
-  const wrap = document.getElementById('add-cls-wrap');
-  if (wrap.innerHTML) { wrap.innerHTML = ''; return; }
-
-  wrap.innerHTML = `
-    <div class="cls-form">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>siteID *</label>
-          <input id="add-siteID" placeholder="예: ${centerID}_1226">
+  return `
+    <div class="inst-card" onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
+      <div style="flex:1;min-width:0">
+        <div class="inst-name-row">
+          <span class="inst-name">${r['기관명'] || r['centerID']}</span>
+          ${tmpBadge}
         </div>
-        <div class="form-group">
-          <label>교실명</label>
-          <input id="add-교실명" placeholder="예: 장미반">
+        <div class="inst-meta">
+          ${r['centerID']} · ${r['담당지사']||'-'} · ${r['주소_시도']||'-'}
         </div>
-        <div class="form-group">
-          <label>서비스 시작일</label>
-          <input id="add-서비스시작일" type="date">
-        </div>
-        <div class="form-group">
-          <label>서비스 종료일</label>
-          <input id="add-서비스종료일" type="date">
-        </div>
+        <div class="inst-stage-bar">${pips}</div>
+        ${omsSummaryHtml}
       </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('add-cls-wrap').innerHTML=''">취소</button>
-        <button class="btn btn-primary btn-sm" onclick="saveClassroom()">저장</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <span class="stage-tag ${tagCls}">${tagLabel}</span>
+        ${dday}
+        <span style="font-size:11px;color:var(--text-hint)">${CH.fmtDate(r['등록일'])}</span>
       </div>
     </div>
   `;
-}
-
-async function saveClassroom() {
-  const siteID = (document.getElementById('add-siteID')?.value || '').trim();
-  if (!siteID) { CH.showToast('siteID는 필수입니다.'); return; }
-
-  const data = {
-    siteID,
-    centerID,
-    교실명:       (document.getElementById('add-교실명')?.value       || '').trim(),
-    서비스시작일: (document.getElementById('add-서비스시작일')?.value || '').trim(),
-    서비스종료일: (document.getElementById('add-서비스종료일')?.value || '').trim(),
-  };
-
-  const result = await CH.post('saveClassroom', data);
-  if (result.ok || result.duplicate) {
-    CH.showToast('저장되었습니다.');
-    clsData.push(data);
-    renderDetail();
-  } else {
-    CH.showToast('오류: ' + (result.error || ''));
-  }
 }
 </script>
 </body>

@@ -292,6 +292,13 @@
           <option value="SANITY">SANITY</option>
           <option value="NONE">미연동</option>
         </select>
+        <select class="f-select" id="f-sort" onchange="applyFilter()">
+          <option value="default">기본 정렬</option>
+          <option value="name_asc">기관명 ㄱ→ㅎ</option>
+          <option value="name_desc">기관명 ㅎ→ㄱ</option>
+          <option value="date_asc">계약일 오래된순</option>
+          <option value="date_desc">계약일 최신순</option>
+        </select>
         <input class="search-input" id="f-search" placeholder="기관명 또는 centerID" oninput="applyFilter()" style="max-width:200px">
         <span class="result-count" id="resultCount"></span>
       </div>
@@ -590,6 +597,18 @@ function applyFilter() {
 
   const countEl = document.getElementById('resultCount');
   if (countEl) countEl.textContent = `${filtered.length}건`;
+
+  // 정렬
+  const sort = document.getElementById('f-sort')?.value || 'default';
+  if (sort === 'name_asc') {
+    filtered.sort((a, b) => (a['기관명'] || '').localeCompare(b['기관명'] || '', 'ko'));
+  } else if (sort === 'name_desc') {
+    filtered.sort((a, b) => (b['기관명'] || '').localeCompare(a['기관명'] || '', 'ko'));
+  } else if (sort === 'date_asc') {
+    filtered.sort((a, b) => (a['계약일자'] || '').localeCompare(b['계약일자'] || ''));
+  } else if (sort === 'date_desc') {
+    filtered.sort((a, b) => (b['계약일자'] || '').localeCompare(a['계약일자'] || ''));
+  }
 
   renderList(filtered);
 }

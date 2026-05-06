@@ -112,6 +112,7 @@ MENUS: {
     { id: 'contract',   icon: '✍️', label: '계약 입력',    href: 'contract.html'  },
     { id: 'logs',       icon: '🕓', label: '변경 로그',    href: 'logs.html'      },
     { id: 'jisa',       icon: '🏢', label: '지사 관리',    href: 'jisa.html'      },
+    { id: 'accounts',   icon: '👤', label: '계정 관리',    href: 'accounts.html'  },
     { id: 'dashboard',  icon: '📊', label: '서비스대시보드', href: 'https://harayaong.github.io/branches/login.html', external: true },
   ],
   bizteam: [

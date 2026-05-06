@@ -205,12 +205,11 @@
 
           <div class="form-group">
             <label>계약 기간 <span style="color:#ef4444">*</span></label>
-            <select id="ct-계약기간" onchange="calcEndDate()">
-              <option value="">선택</option>
-              <option value="1">1년</option>
-              <option value="2">2년</option>
-              <option value="3">3년</option>
+            <select id="ct-계약기간" onchange="calcEndDate()" disabled
+              style="background:#f8fafc;color:var(--text-sub);cursor:not-allowed">
+              <option value="3" selected>3년</option>
             </select>
+            <div class="field-hint">계약 기간은 3년으로 고정됩니다</div>
           </div>
 
           <div class="form-group">
@@ -432,28 +431,28 @@ function onSidoChange() {
 }
 
 // ==============================
-// 계약종료일 자동계산
+// 계약종료일 자동계산 (매년 2월 28일 고정)
 // ==============================
 function calcEndDate() {
   const startVal = document.getElementById('ct-계약시작일').value;
-  const years    = document.getElementById('ct-계약기간').value;
+  const years    = parseInt(document.getElementById('ct-계약기간').value) || 3;
   const endInput = document.getElementById('ct-계약종료일');
   const hint     = document.getElementById('autoCalcHint');
 
-  if (!startVal || !years) {
-    endInput.value    = '';
+  if (!startVal) {
+    endInput.value     = '';
     hint.style.display = 'none';
     return;
   }
 
-  const d = new Date(startVal);
-  d.setFullYear(d.getFullYear() + parseInt(years));
-  // 하루 빼기 (시작일 기준 N년 후 전날)
-  d.setDate(d.getDate() - 1);
+  // 계약시작일 기준으로 N년 후 2월 28일
+  const start   = new Date(startVal);
+  const endYear = start.getFullYear() + years;
+  // 2월 28일 고정 (윤년 여부 무관)
+  const endStr  = `${endYear}-02-28`;
 
-  const endStr       = d.toISOString().slice(0, 10);
   endInput.value     = endStr;
-  hint.textContent   = `계약시작일 기준 ${years}년 후: ${endStr}`;
+  hint.textContent   = `계약 종료일: ${endYear}년 2월 28일 (${years}년 계약 기준)`;
   hint.style.display = 'block';
 }
 
@@ -494,7 +493,7 @@ function validate() {
     CH.showToast('대표교사 연락처가 원장님 연락처와 동일합니다.'); return false;
   }
   if (!계약일자)   { CH.showToast('계약 일자를 입력해주세요.');         return false; }
-  if (!계약기간)   { CH.showToast('계약 기간을 선택해주세요.');         return false; }
+  // 계약기간은 3년으로 고정
   if (CH.role === 'admin' && !계약시작일) {
     CH.showToast('계약 시작일을 입력해주세요.'); return false;
   }
@@ -522,7 +521,7 @@ async function saveContract() {
     주소_군구:       document.getElementById('ct-주소_군구').value,
     주소_상세:       document.getElementById('ct-주소_상세').value.trim(),
     계약일자:        document.getElementById('ct-계약일자').value,
-    계약기간:        document.getElementById('ct-계약기간').value,
+    계약기간:        document.getElementById('ct-계약기간').value || '3',
     계약시작일:      CH.role === 'admin' ? document.getElementById('ct-계약시작일').value : '',
     계약종료일:      CH.role === 'admin' ? document.getElementById('ct-계약종료일').value : '',
     교실수:          document.getElementById('ct-교실수').value,

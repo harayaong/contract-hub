@@ -285,13 +285,6 @@
           <option value="6">서비스 오픈</option>
           <option value="7">취소</option>
         </select>
-        <select class="f-select" id="f-oms" onchange="applyFilter()">
-          <option value="">전체 OMS</option>
-          <option value="ON">ON</option>
-          <option value="OFF">OFF</option>
-          <option value="SANITY">SANITY</option>
-          <option value="NONE">미연동</option>
-        </select>
         <select class="f-select" id="f-sort" onchange="applyFilter()">
           <option value="default">기본 정렬</option>
           <option value="name_asc">기관명 ㄱ→ㅎ</option>
@@ -567,7 +560,6 @@ function renderOmsGrid() {
 function applyFilter() {
   const jisa  = document.getElementById('f-jisa')?.value  || '';
   const stage = document.getElementById('f-stage')?.value || '';
-  const oms   = document.getElementById('f-oms')?.value   || '';
   const q     = (document.getElementById('f-search')?.value || '').toLowerCase();
 
   const filtered = allData.filter(r => {
@@ -577,24 +569,7 @@ function applyFilter() {
       (r['기관명']  ||'').toLowerCase().includes(q) ||
       (r['centerID']||'').toLowerCase().includes(q);
 
-    // OMS 필터
-    let matchOms = true;
-    if (oms) {
-      const clsList = omsMap[r['centerID']] || [];
-      if (oms === 'NONE') {
-        matchOms = clsList.length === 0;
-      } else {
-        matchOms = clsList.some(cls => {
-          const s = String(cls['OMS_상태'] || '').toUpperCase();
-          if (oms === 'ON')     return s === 'ON' || s === 'APPROVED';
-          if (oms === 'OFF')    return s === 'OFF';
-          if (oms === 'SANITY') return s.includes('SANITY');
-          return false;
-        });
-      }
-    }
-
-    return matchJisa && matchStage && matchQ && matchOms;
+    return matchJisa && matchStage && matchQ;
   });
 
   const countEl = document.getElementById('resultCount');

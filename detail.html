@@ -508,25 +508,35 @@ async function saveInst() {
     원장님성함:    document.getElementById('ei-원장님성함')?.value.trim()     || inst['원장님성함'],
     원장님연락처:  document.getElementById('ei-원장님연락처')?.value.trim()   || inst['원장님연락처'],
     대표교사연락처: document.getElementById('ei-대표교사연락처')?.value.trim() || inst['대표교사연락처'],
-    비고:          inst['비고'],  // 비고는 하단 비고 섹션에서 별도 관리
+    비고:          inst['비고'],
     임시ID여부:    inst['임시ID여부'],
     진행단계:      inst['진행단계'],
     등록일:        inst['등록일'],
   };
 
-  // 대표교사 연락처 중복 체크
   if (data['대표교사연락처'] && data['대표교사연락처'] === data['원장님연락처']) {
     CH.showToast('대표교사 연락처가 원장님 연락처와 동일합니다.'); return;
   }
 
-  CH.showToast('저장 중...', true);
-  const result = await CH.post('saveInstitution', data);
-  if (result.ok || result.duplicate) {
-    CH.showToast('수정되었습니다.');
-    loadDetail();
-  } else {
-    CH.showToast('오류: ' + (result.error || ''));
-  }
+  // Optimistic: 즉시 로컬 반영 + 폼 닫기
+  const prev = { ...inst };
+  Object.assign(inst, data);
+  toggleEditInst();
+  renderDetail();
+  CH.showToast('수정되었습니다.');
+
+  // 백그라운드 저장
+  CH.post('saveInstitution', data).then(result => {
+    if (!result.ok && !result.duplicate) {
+      CH.showToast('저장 실패 — 변경사항이 되돌려졌습니다.');
+      Object.assign(inst, prev);
+      renderDetail();
+    }
+  }).catch(() => {
+    CH.showToast('서버 오류 — 변경사항이 되돌려졌습니다.');
+    Object.assign(inst, prev);
+    renderDetail();
+  });
 }
 
 // ==============================
@@ -563,29 +573,35 @@ async function saveRenew() {
   if (!플랜)      { CH.showToast('플랜을 선택해주세요.');      return; }
   if (!교실수 || parseInt(교실수) < 1) { CH.showToast('교실수를 입력해주세요.'); return; }
 
-  CH.showToast('저장 중...', true);
-  const result = await CH.post('saveContract', {
+  const payload = {
     centerID: inst['centerID'],
     계약일자, 계약기간, 계약시작일, 계약종료일, 플랜, 교실수,
-    // 기관 기본정보는 기존 유지
-    기관명:      inst['기관명'],
-    고객표시명:  inst['고객표시명'],
-    담당지사:    inst['담당지사'],
-    주소_시도:   inst['주소_시도'],
-    주소_군구:   inst['주소_군구'],
-    주소_상세:   inst['주소_상세'],
-    원장님성함:  inst['원장님성함'],
-    원장님연락처: inst['원장님연락처'],
-    대표교사연락처: inst['대표교사연락처'],
-    비고:        inst['비고'],
-  });
+    기관명:      inst['기관명'],    고객표시명:  inst['고객표시명'],
+    담당지사:    inst['담당지사'],  주소_시도:   inst['주소_시도'],
+    주소_군구:   inst['주소_군구'], 주소_상세:   inst['주소_상세'],
+    원장님성함:  inst['원장님성함'], 원장님연락처: inst['원장님연락처'],
+    대표교사연락처: inst['대표교사연락처'], 비고: inst['비고'],
+  };
 
-  if (result.ok || result.duplicate) {
-    CH.showToast('계약이 갱신되었습니다.');
-    loadDetail();
-  } else {
-    CH.showToast('오류: ' + (result.error || ''));
-  }
+  // Optimistic: 즉시 로컬 반영 + 폼 닫기
+  const prev = ctData ? { ...ctData } : null;
+  ctData = { ...ctData, 계약일자, 계약기간, 계약시작일, 계약종료일, 플랜, 교실수 };
+  toggleRenewForm();
+  renderDetail();
+  CH.showToast('계약이 갱신되었습니다.');
+
+  // 백그라운드 저장
+  CH.post('saveContract', payload).then(result => {
+    if (!result.ok && !result.duplicate) {
+      CH.showToast('저장 실패 — 변경사항이 되돌려졌습니다.');
+      ctData = prev;
+      renderDetail();
+    }
+  }).catch(() => {
+    CH.showToast('서버 오류 — 변경사항이 되돌려졌습니다.');
+    ctData = prev;
+    renderDetail();
+  });
 }
 async function confirmSiteId() {
   const newId = (document.getElementById('newSiteId')?.value || '').trim();
@@ -605,14 +621,25 @@ async function confirmSiteId() {
 // 단계 진행
 // ==============================
 async function advanceStage(newStage) {
-  const result = await CH.post('updateStage', { 기관ID: centerID, stage: newStage });
-  if (result.ok || result.duplicate) {
-    CH.showToast(`${STAGE_LABELS[newStage - 1]} 단계로 업데이트됐습니다.`);
-    inst['진행단계'] = String(newStage);
+  const prev = inst['진행단계'];
+
+  // Optimistic: 즉시 UI 반영
+  inst['진행단계'] = String(newStage);
+  renderDetail();
+  CH.showToast(`${STAGE_LABELS[newStage - 1]} 단계로 이동했습니다.`);
+
+  // 백그라운드 저장
+  CH.post('updateStage', { 기관ID: centerID, stage: newStage }).then(result => {
+    if (!result.ok && !result.duplicate) {
+      CH.showToast('저장 실패 — 단계가 되돌려졌습니다.');
+      inst['진행단계'] = prev;
+      renderDetail();
+    }
+  }).catch(() => {
+    CH.showToast('서버 오류 — 단계가 되돌려졌습니다.');
+    inst['진행단계'] = prev;
     renderDetail();
-  } else {
-    CH.showToast('오류: ' + (result.error || ''));
-  }
+  });
 }
 
 // ==============================
@@ -662,14 +689,24 @@ async function saveClassroom() {
     서비스종료일: (document.getElementById('add-서비스종료일')?.value || '').trim(),
   };
 
-  const result = await CH.post('saveClassroom', data);
-  if (result.ok || result.duplicate) {
-    CH.showToast('저장되었습니다.');
-    clsData.push(data);
+  // Optimistic: 즉시 목록에 추가 + 폼 닫기
+  clsData.push(data);
+  document.getElementById('add-cls-wrap').innerHTML = '';
+  renderDetail();
+  CH.showToast('교실이 추가되었습니다.');
+
+  // 백그라운드 저장
+  CH.post('saveClassroom', data).then(result => {
+    if (!result.ok && !result.duplicate) {
+      CH.showToast('저장 실패 — 교실이 되돌려졌습니다.');
+      clsData = clsData.filter(c => c.siteID !== siteID);
+      renderDetail();
+    }
+  }).catch(() => {
+    CH.showToast('서버 오류 — 교실이 되돌려졌습니다.');
+    clsData = clsData.filter(c => c.siteID !== siteID);
     renderDetail();
-  } else {
-    CH.showToast('오류: ' + (result.error || ''));
-  }
+  });
 }
 
 // ==============================
@@ -772,34 +809,36 @@ async function addMemo() {
   const text = (document.getElementById('memo-input')?.value || '').trim();
   if (!text) { CH.showToast('내용을 입력해주세요.'); return; }
 
-  const newMemo = {
-    ts:     nowStr(),
-    author: CH.name || CH.role || '-',
-    text,
-  };
-  memos.push(newMemo);
-  await saveMemos();
+  // Optimistic: 즉시 입력창 비우고 목록에 추가
   document.getElementById('memo-input').value = '';
+  document.getElementById('memo-input').style.height = 'auto';
+
+  memos.push({ ts: nowStr(), author: CH.name || CH.role || '-', text });
+  await saveMemos();
 }
 
 async function saveMemos() {
-  const raw = memoToRaw(memos);
+  const raw  = memoToRaw(memos);
+  const prev = inst['비고'];
   inst['비고'] = raw;
 
-  CH.showToast('저장 중...', true);
-  const result = await CH.post('saveMemo', {
-    centerID: inst['centerID'],
-    memo:     raw,
+  // Optimistic: 즉시 UI 반영
+  renderMemos();
+
+  // 백그라운드 저장
+  CH.post('saveMemo', { centerID: inst['centerID'], memo: raw }).then(result => {
+    if (!result.ok && !result.duplicate) {
+      CH.showToast('저장 실패 — 비고가 되돌려졌습니다.');
+      inst['비고'] = prev;
+      memos = parseMemos(prev);
+      renderMemos();
+    }
+  }).catch(() => {
+    CH.showToast('서버 오류 — 비고가 되돌려졌습니다.');
+    inst['비고'] = prev;
+    memos = parseMemos(prev);
+    renderMemos();
   });
-  if (result.ok || result.duplicate) {
-    CH.showToast('비고가 저장되었습니다.');
-    renderMemos();
-  } else {
-    CH.showToast('오류: ' + (result.error || ''));
-    // 실패 시 롤백
-    memos = parseMemos(inst['비고']);
-    renderMemos();
-  }
 }
 </script>
 </body>

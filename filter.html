@@ -89,7 +89,7 @@
     <!-- 검색 -->
     <div class="filter-card">
       <div class="filter-label">검색</div>
-      <input class="search-input" id="f-search" placeholder="기관명 또는 centerID" oninput="applyFilters()">
+      <input class="search-input" id="f-search" placeholder="기관명, 교실명 또는 centerID" oninput="applyFilters()">
     </div>
 
     <!-- 진행단계 -->
@@ -267,8 +267,14 @@ function applyFilters() {
   const oms   = document.getElementById('f-oms')?.value   || '';
 
   const filtered = ovData.filter(r => {
+    // 교실명 검색: 해당 기관의 OMS 교실 중 교실명이 q를 포함하는지
+    const clsList = omsMap[r['centerID']] || [];
+    const matchClsName = clsList.some(cls =>
+      (cls['교실명'] || cls['className'] || cls['classname'] || '').toLowerCase().includes(q)
+    );
     const matchQ     = !q     || (r['기관명']||'').toLowerCase().includes(q)
-                               || (r['centerID']||'').toLowerCase().includes(q);
+                               || (r['centerID']||'').toLowerCase().includes(q)
+                               || matchClsName;
     const matchStage = activeStage === 'all' || r['진행단계'] === activeStage;
     const matchJisa  = !jisa  || r['담당지사']  === jisa;
     const matchSido  = !sido  || r['주소_시도'] === sido;
@@ -352,8 +358,9 @@ function instCardHTML(r) {
 
   const tmpBadge = isTmp ? `<span class="tag-tmp">임시ID</span>` : '';
 
-  // OMS 요약
+  // OMS 요약 + 교실명 검색 매칭
   const clsList = omsMap[r['centerID']] || [];
+  const q = (document.getElementById('f-search')?.value || '').toLowerCase();
   let omsSummary = '';
   if (clsList.length > 0) {
     const cnt = { ON: 0, OFF: 0, SANITY: 0 };
@@ -367,9 +374,22 @@ function instCardHTML(r) {
     if (cnt.ON     > 0) badges.push(`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#d1fae5;color:#065f46">ON ${cnt.ON}</span>`);
     if (cnt.OFF    > 0) badges.push(`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#fee2e2;color:#991b1b">OFF ${cnt.OFF}</span>`);
     if (cnt.SANITY > 0) badges.push(`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#fef3c7;color:#92400e">SANITY ${cnt.SANITY}</span>`);
-    omsSummary = `<div style="display:flex;gap:4px;margin-top:6px;align-items:center">
+
+    // 교실명 검색 매칭 표시
+    let matchedClsHtml = '';
+    if (q) {
+      const matched = clsList.filter(cls =>
+        (cls['교실명'] || cls['className'] || cls['classname'] || '').toLowerCase().includes(q)
+      ).map(cls => cls['교실명'] || cls['className'] || cls['classname'] || '');
+      if (matched.length > 0) {
+        matchedClsHtml = `<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe">교실 매칭: ${matched.slice(0,3).join(', ')}${matched.length > 3 ? ` 외 ${matched.length-3}개` : ''}</span>`;
+      }
+    }
+
+    omsSummary = `<div style="display:flex;gap:4px;margin-top:6px;align-items:center;flex-wrap:wrap">
       <span style="font-size:11px;color:var(--text-hint)">교실 ${clsList.length}개</span>
       ${badges.join('')}
+      ${matchedClsHtml}
     </div>`;
   }
 

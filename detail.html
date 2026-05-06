@@ -828,14 +828,13 @@ async function saveMemos() {
   // 백그라운드 저장
   CH.post('saveMemo', { centerID: inst['centerID'], memo: raw }).then(result => {
     if (!result.ok && !result.duplicate) {
-      const msg = result.error || '알 수 없는 오류';
-      alert('비고 저장 실패:\n' + msg);
+      CH.showToast('저장 실패 — 비고가 되돌려졌습니다.');
       inst['비고'] = prev;
       memos = parseMemos(prev);
       renderMemos();
     }
-  }).catch(e => {
-    alert('비고 서버 오류:\n' + e.message);
+  }).catch(() => {
+    CH.showToast('서버 오류 — 비고가 되돌려졌습니다.');
     inst['비고'] = prev;
     memos = parseMemos(prev);
     renderMemos();

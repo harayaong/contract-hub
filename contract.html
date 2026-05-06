@@ -1,172 +1,202 @@
-<!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
-<!-- contract.html -->
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📋 Contract Hub — 계약 입력</title>
-<script src="common.js"></script>
-</head>
-<body>
-<script> CH.injectStyle(); </script>
+// 📋 Contract Hub: 기관 계약 관리 시스템
+// Code.gs — v2 (2026)
 
-<style>
-  .tmp-id-preview {
-    font-size: 12px; color: #92400e;
-    background: #fef3c7; padding: 4px 10px;
-    border-radius: 6px; margin-top: 4px; display: none;
-  }
-  @media (max-width: 375px) {
-    .form-group input, .form-group select { font-size: 16px; }
-  }
-</style>
+const SS_ID = '1YlqVIxR_xOJ16IKBkSWOwZX0hgxSaoI6w9eD4kYTq3Q';
+const SS     = SpreadsheetApp.openById(SS_ID);
 
-<!-- 사이드바 -->
-<div class="sidebar">
-  <div class="sidebar-logo">
-    <div class="icon">📋</div>
-    <span>Contract Hub</span>
-  </div>
-  <nav class="sidebar-nav" id="sideNav"></nav>
-  <div class="sidebar-footer">
-    <div class="user-info">
-      <div class="user-avatar" id="userAvatar"></div>
-      <div>
-        <div class="user-name" id="userName"></div>
-        <div class="user-role" id="userRole"></div>
-      </div>
-    </div>
-    <button class="logout-btn" onclick="CH.logout()">로그아웃</button>
-  </div>
-</div>
+// ============================================================
+// Sheets 컬럼 정의 (순서 = 실제 시트 컬럼 순서)
+// ============================================================
+const SCHEMA = {
 
-<!-- 모바일 하단 탭바 -->
-<div class="bottombar">
-  <div class="bottombar-inner" id="bottomNav"></div>
-</div>
+  기관마스터: [
+    'centerID',       // A: 기관 고유 ID (임시/확정)
+    '기관명',         // B
+    '고객표시명',     // C: 미입력 시 기관명과 동일
+    '담당지사',       // D: 지사목록 시트에서 관리
+    '주소_시도',      // E: 서울/경기/...
+    '주소_군구',      // F: 강남구/수원시/...
+    '주소_상세',      // G: 동·번지 등
+    '원장님성함',     // H
+    '원장님연락처',   // I: 010-0000-0000
+    '등록일',         // J: 자동
+    '수정일',         // K: 자동
+    '임시ID여부',     // L: Y/N
+    '진행단계',       // M: 1~7
+    '비고',           // N
+  ],
 
-<div class="main">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">계약 입력</div>
-      <div class="topbar-sub">신규 계약 기관 정보를 입력합니다</div>
-    </div>
-  </div>
-  <div class="content">
+  계약정보: [
+    'centerID',       // A
+    '계약일자',       // B
+    '계약기간',       // C: 1/2/3 (년)
+    '계약시작일',     // D
+    '계약종료일',     // E: 자동계산
+    '플랜',           // F: 스탠다드/베이직
+    '교실수',         // G: 숫자
+    '입력자',         // H: 자동 (user.id)
+    '입력자지사',     // I: 자동 (user.branch)
+    '입력일',         // J: 자동
+  ],
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">계약 정보 입력</div>
-      </div>
-      <div class="form-grid">
+  교실정보: [
+    'siteID',         // A
+    'centerID',       // B
+    '교실명',         // C
+    '서비스시작일',   // D
+    '서비스종료일',   // E
+    '교실상태',       // F: 활성/비활성
+    'OMS_상태',       // G: OMS 연동
+    'OMS_서비스요일', // H: OMS 연동
+    'OMS_스케줄',     // I: OMS 연동
+  ],
 
-        <div class="form-group full">
-          <label>기관명 *</label>
-          <input id="ct-기관명" placeholder="기관명 입력 시 임시ID 자동생성" oninput="previewTmpId()">
-          <div class="tmp-id-preview" id="tmpIdPreview"></div>
-        </div>
+  변경로그: [
+    '일시',           // A: 자동
+    '처리자',         // B: 자동
+    '대상시트',       // C: 자동
+    'centerID',       // D: 자동
+    'siteID',         // E: 자동 (교실 변경 시)
+    '항목',           // F: 변경된 필드명
+    '변경전',         // G
+    '변경후',         // H
+  ],
 
-        <div class="form-group">
-          <label>계약 일자</label>
-          <input id="ct-계약일자" type="date">
-        </div>
-        <div class="form-group">
-          <label>계약 기간</label>
-          <select id="ct-계약기간">
-            <option value="">선택</option>
-            <option>6개월</option><option>12개월</option>
-            <option>24개월</option><option>36개월</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>계약 시작일</label>
-          <input id="ct-계약시작일" type="date">
-        </div>
-        <div class="form-group">
-          <label>계약 종료일</label>
-          <input id="ct-계약종료일" type="date">
-        </div>
+  accounts: [
+    'id',             // A: 로그인 ID
+    'pw',             // B: 비밀번호
+    'role',           // C: admin/bizteam/branch
+    'branch',         // D: 담당지사명
+    'active',         // E: Y/N
+  ],
 
-        <div class="form-group">
-          <label>부모님 서비스</label>
-          <select id="ct-부모님서비스">
-            <option value="">선택</option>
-            <option>포함</option><option>미포함</option>
-          </select>
-        </div>
+  지사목록: [
+    '지사명',         // A
+    'active',         // B: Y/N
+  ],
 
-        <div class="form-group" id="jisa-group">
-          <label>담당 지사</label>
-          <select id="ct-담당지사">
-            <option value="">선택</option>
-            <option>한마음교육</option><option>뉴믹스에듀</option><option>동대구동심</option>
-            <option>센스교육</option><option>한결교육</option><option>디렉토리</option>
-            <option>5월5일</option><option>용인동심</option><option>즐거운교육</option>
-            <option>세모에듀</option><option>(주)더바론에듀테인먼트</option><option>아이행복EDU</option>
-            <option>문화사</option><option>전주동심</option><option>위드원에듀</option>
-            <option>동심에드피아</option><option>POC</option><option>조이에듀</option>
-            <option>다온시스템</option><option>오월오일</option><option>원주국민</option>
-            <option>차일드</option><option>수원센스</option><option>한결교육 꿈드림</option>
-          </select>
-        </div>
+  OMS_SITE_INFO: [
+    'siteID',                    // A
+    'classroomServiceStatus',    // B: ON/OFF/SANITY 등
+    'serviceDays',               // C: MONDAY,WEDNESDAY,...
+    'schedule',                  // D: today_0900-1200 등
+  ],
+};
 
-        <div class="form-group">
-          <label>주소 시도</label>
-          <select id="ct-주소_시도">
-            <option value="">선택</option>
-            <option>서울</option><option>경기</option><option>인천</option>
-            <option>부산</option><option>대구</option><option>광주</option>
-            <option>대전</option><option>울산</option><option>세종</option>
-            <option>강원</option><option>충북</option><option>충남</option>
-            <option>전북</option><option>전남</option><option>경북</option>
-            <option>경남</option><option>제주</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>주소 상세</label>
-          <input id="ct-주소_상세" placeholder="나머지 주소">
-        </div>
-        <div class="form-group">
-          <label>원장님 성함</label>
-          <input id="ct-원장님성함">
-        </div>
-        <div class="form-group">
-          <label>원장님 연락처</label>
-          <input id="ct-원장님연락처" placeholder="010-0000-0000">
-        </div>
-        <div class="form-group full">
-          <label>비고</label>
-          <textarea id="ct-비고" rows="3"></textarea>
-        </div>
+// ============================================================
+// 웹앱 진입점
+// ============================================================
+function doGet(e) {
+  const action = e.parameter.action || '';
+  const token  = e.parameter.token  || '';
 
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="resetForm()">초기화</button>
-        <button class="btn btn-primary" onclick="saveContract()">저장</button>
-      </div>
-    </div>
+  if (action === 'login') return handleLogin(e);
 
-  </div>
-</div>
+  const user = verifyToken(token);
+  if (!user) return res({ ok: false, error: 'unauthorized' });
 
-<script>
-if (!CH.requireAuth()) throw new Error('unauthorized');
-CH.renderNav('contract');
+  if (action === 'getInstitutions') return getInstitutions(user);
+  if (action === 'getClassrooms')   return getClassrooms(e, user);
+  if (action === 'getOmsStatus')    return getOmsStatus(e, user);
+  if (action === 'getContracts')    return getContracts(e, user);
+  if (action === 'getLogs')         return getLogs(user);
+  if (action === 'getJisaList')     return getJisaList();
 
-// 지사 계정이면 담당지사 항목 숨기기
-if (CH.role === 'branch') {
-  document.getElementById('jisa-group').style.display = 'none';
+  return res({ ok: false, error: 'unknown action' });
 }
 
-// ==============================
-// 임시ID 미리보기
-// ==============================
-function previewTmpId() {
-  const 기관명  = document.getElementById('ct-기관명').value.trim();
-  const preview = document.getElementById('tmpIdPreview');
-  if (!기관명) { preview.style.display = 'none'; return; }
+function doPost(e) {
+  if (!e || !e.postData) return res({ ok: false, error: 'no data' });
 
+  let body;
+  try { body = JSON.parse(e.postData.contents); }
+  catch(err) { return res({ ok: false, error: 'invalid json' }); }
+
+  // ── 내부 서비스 간 호출 (Daily Ops → Contract Hub) ──
+  if (body.action === 'syncOms' && body.token === 'CH_INTERNAL_4kYTq3Q') {
+    return parseOmsJson(body, { id: 'daily_ops', role: 'admin', branch: '' });
+  }
+
+  // ── Slack URL 검증 ──
+  if (body.type === 'url_verification') {
+    return ContentService
+      .createTextOutput(body.challenge)
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  // ── Slack 이벤트 수신 ──
+  if (body.type === 'event_callback') {
+    return handleSlackEvent(body);
+  }
+
+  // ── 중복 요청 방지 ──
+  if (body.requestId) {
+    const props = PropertiesService.getScriptProperties();
+    const key   = 'req_' + body.requestId;
+    if (props.getProperty(key)) return res({ ok: true, duplicate: true });
+    props.setProperty(key, '1');
+  }
+
+  const user = verifyToken(body.token || '');
+  if (!user) return res({ ok: false, error: 'unauthorized' });
+
+  const action = body.action || '';
+  if (action === 'saveContract')    return saveContract(body, user);
+  if (action === 'saveInstitution') return saveInstitution(body, user);
+  if (action === 'saveClassroom')   return saveClassroom(body, user);
+  if (action === 'confirmSiteId')   return confirmSiteId(body, user);
+  if (action === 'updateStage')     return updateStage(body, user);
+  if (action === 'cancelContract')  return cancelContract(body, user);
+
+  return res({ ok: false, error: 'unknown action' });
+}
+
+// ============================================================
+// 공통 응답
+// ============================================================
+function res(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================================
+// 로그인 & 토큰
+// ============================================================
+function handleLogin(e) {
+  const id    = e.parameter.id || '';
+  const pw    = e.parameter.pw || '';
+  const sheet = SS.getSheetByName('accounts');
+  const rows  = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    const [aId, aPw, aRole, aBranch, aActive] = rows[i];
+    if (String(aId) === id && String(aPw) === pw && String(aActive) === 'Y') {
+      const token = generateToken(id, aRole, String(aBranch));
+      return res({ ok: true, token, role: aRole, branch: String(aBranch), name: id });
+    }
+  }
+  return res({ ok: false, error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+}
+
+function generateToken(id, role, branch) {
+  const token = Utilities.base64Encode(`${id}|${role}|${branch}|${Date.now()}`);
+  PropertiesService.getScriptProperties()
+    .setProperty('token_' + token, JSON.stringify({ id, role, branch, ts: Date.now() }));
+  return token;
+}
+
+function verifyToken(token) {
+  if (!token) return null;
+  const raw = PropertiesService.getScriptProperties().getProperty('token_' + token);
+  if (!raw) return null;
+  return JSON.parse(raw);
+}
+
+// ============================================================
+// 임시ID 생성
+// ============================================================
+function generateTmpId(기관명) {
   const cleaned   = 기관명.replace(/[^가-힣a-zA-Z0-9]/g, '');
   const romanized = cleaned.substring(0, 6).split('').map(c => {
     const code = c.charCodeAt(0);
@@ -177,62 +207,604 @@ function previewTmpId() {
     }
     return c.toLowerCase();
   }).join('');
-
-  preview.textContent = `자동생성 임시ID: tmp_${romanized || 'inst'}_****`;
-  preview.style.display = 'block';
+  return 'tmp_' + (romanized || 'inst') + '_' + Date.now().toString().slice(-4);
 }
 
-// ==============================
-// 계약 저장
-// ==============================
-async function saveContract() {
-  const data = {};
-  ['기관명','계약일자','계약시작일','계약종료일','계약기간',
-   '부모님서비스','담당지사','주소_시도','주소_상세',
-   '원장님성함','원장님연락처','비고'].forEach(k => {
-    const el = document.getElementById('ct-' + k);
-    if (el) data[k] = el.value.trim();
+// ============================================================
+// 계약종료일 자동계산
+// ============================================================
+function calcEndDate(startDate, years) {
+  if (!startDate || !years) return '';
+  const d = new Date(startDate);
+  if (isNaN(d.getTime())) return '';
+  d.setFullYear(d.getFullYear() + parseInt(years));
+  return Utilities.formatDate(d, 'Asia/Seoul', 'yyyy-MM-dd');
+}
+
+// ============================================================
+// 지사 목록 조회
+// ============================================================
+function getJisaList() {
+  const sheet = SS.getSheetByName('지사목록');
+  if (!sheet) return res({ ok: true, data: [] });
+  const rows = sheet.getDataRange().getValues();
+  const result = rows.slice(1)
+    .filter(r => r[0] && String(r[1] || 'Y') === 'Y')
+    .map(r => String(r[0]));
+  return res({ ok: true, data: result });
+}
+
+// ============================================================
+// 기관마스터 조회
+// ============================================================
+function getInstitutions(user) {
+  const sheet   = SS.getSheetByName('기관마스터');
+  const rows    = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const result  = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row[0]) continue;
+    const obj = {};
+    headers.forEach((h, j) => obj[h] = String(row[j] || ''));
+    if (user.role === 'branch' && obj['담당지사'] !== user.branch) continue;
+    result.push(obj);
+  }
+  return res({ ok: true, data: result });
+}
+
+// ============================================================
+// 교실정보 조회
+// ============================================================
+function getClassrooms(e, user) {
+  const centerID = e.parameter.centerID || '';
+  const sheet    = SS.getSheetByName('교실정보');
+  const rows     = sheet.getDataRange().getValues();
+  const headers  = rows[0];
+  const result   = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row[0]) continue;
+    const obj = {};
+    headers.forEach((h, j) => obj[h] = String(row[j] || ''));
+    if (centerID && obj['centerID'] !== centerID) continue;
+    result.push(obj);
+  }
+  return res({ ok: true, data: result });
+}
+
+// ============================================================
+// OMS 상태 조회 (교실정보 기반)
+// ============================================================
+function getOmsStatus(e, user) {
+  const centerID = e.parameter.centerID || '';
+  const sheet    = SS.getSheetByName('교실정보');
+  const rows     = sheet.getDataRange().getValues();
+  const headers  = rows[0];
+  const result   = [];
+
+  // branch 권한 체크용 기관마스터 맵
+  let branchMap = null;
+  if (user.role === 'branch') {
+    const instSheet   = SS.getSheetByName('기관마스터');
+    const instRows    = instSheet.getDataRange().getValues();
+    const instHeaders = instRows[0];
+    const cidIdx      = instHeaders.indexOf('centerID');
+    const jisaIdx     = instHeaders.indexOf('담당지사');
+    branchMap = {};
+    for (let i = 1; i < instRows.length; i++) {
+      branchMap[String(instRows[i][cidIdx] || '')] = String(instRows[i][jisaIdx] || '');
+    }
+  }
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row[0]) continue;
+    const obj = {};
+    headers.forEach((h, j) => obj[h] = String(row[j] || ''));
+    if (centerID && obj['centerID'] !== centerID) continue;
+    if (branchMap && branchMap[obj['centerID']] !== user.branch) continue;
+    result.push(obj);
+  }
+  return res({ ok: true, data: result });
+}
+
+// ============================================================
+// 계약정보 조회 (최신 행 우선)
+// ============================================================
+function getContracts(e, user) {
+  const centerID = e.parameter.centerID || '';
+  const sheet    = SS.getSheetByName('계약정보');
+  const rows     = sheet.getDataRange().getValues();
+  const headers  = rows[0];
+
+  // 전체 로드 후 centerID 기준 그룹화 → 가장 마지막 행(최신)만 반환
+  const map = {};
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row[0]) continue;
+    const obj = {};
+    headers.forEach((h, j) => obj[h] = String(row[j] || ''));
+    if (centerID && obj['centerID'] !== centerID) continue;
+    if (user.role === 'branch' && obj['입력자지사'] !== user.branch) continue;
+    // 같은 centerID가 여러 행이면 마지막 행(최신)으로 덮어씀
+    map[obj['centerID']] = obj;
+  }
+
+  return res({ ok: true, data: Object.values(map) });
+}
+
+// ============================================================
+// 변경로그 조회
+// ============================================================
+function getLogs(user) {
+  if (user.role === 'branch') return res({ ok: false, error: 'forbidden' });
+  const sheet   = SS.getSheetByName('변경로그');
+  const rows    = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const result  = rows.slice(1)
+    .filter(r => r[0])
+    .map(r => { const o = {}; headers.forEach((h, j) => o[h] = String(r[j] || '')); return o; })
+    .reverse();
+  return res({ ok: true, data: result });
+}
+
+// ============================================================
+// 계약 저장 (기관마스터 + 계약정보 동시)
+// ============================================================
+function saveContract(body, user) {
+  const d      = body.data;
+  const 기관명 = String(d['기관명'] || '').trim();
+  if (!기관명) return res({ ok: false, error: '기관명 없음' });
+
+  const now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+
+  // ── 기관마스터 ──
+  const instSheet   = SS.getSheetByName('기관마스터');
+  const instRows    = instSheet.getDataRange().getValues();
+  const instHeaders = instRows[0];
+
+  let centerID = String(d['centerID'] || '').trim();
+  let isNew    = false;
+  if (!centerID) {
+    centerID = generateTmpId(기관명);
+    isNew    = true;
+  }
+
+  // 기존 행 찾기
+  let instRowIdx = -1;
+  for (let i = 1; i < instRows.length; i++) {
+    if (String(instRows[i][0]).trim() === centerID) { instRowIdx = i + 1; break; }
+  }
+
+  const instRowData = SCHEMA.기관마스터.map(h => {
+    if (h === 'centerID')     return centerID;
+    if (h === '기관명')       return 기관명;
+    if (h === '고객표시명')   return d['고객표시명']   || 기관명;
+    if (h === '담당지사')     return d['담당지사']     || user.branch || '';
+    if (h === '주소_시도')    return d['주소_시도']    || '';
+    if (h === '주소_군구')    return d['주소_군구']    || '';
+    if (h === '주소_상세')    return d['주소_상세']    || '';
+    if (h === '원장님성함')   return d['원장님성함']   || '';
+    if (h === '원장님연락처') return d['원장님연락처'] || '';
+    if (h === '등록일')       return instRowIdx > 0
+      ? String(instRows[instRowIdx - 1][instHeaders.indexOf('등록일')] || now) : now;
+    if (h === '수정일')       return now;
+    if (h === '임시ID여부')   return isNew ? 'Y' : 'N';
+    if (h === '진행단계')     return instRowIdx > 0
+      ? String(instRows[instRowIdx - 1][instHeaders.indexOf('진행단계')] || '1') : '1';
+    if (h === '비고')         return d['비고'] || '';
+    return '';
   });
 
-  if (!data['기관명']) { CH.showToast('기관명은 필수입니다.'); return; }
+  if (instRowIdx > 0) {
+    const before = instRows[instRowIdx - 1].map(v => String(v || ''));
+    instSheet.getRange(instRowIdx, 1, 1, instRowData.length).setValues([instRowData]);
+    writeLog(user, '기관마스터', centerID, '', SCHEMA.기관마스터, before, instRowData);
+  } else {
+    instSheet.appendRow(instRowData);
+    writeLog(user, '기관마스터', centerID, '', ['신규등록'], [''], ['완료']);
+  }
 
-  // 지사 계정은 담당지사 자동 설정
-  if (CH.role === 'branch') data['담당지사'] = CH.branch;
+  // ── 계약정보 (항상 새 행 추가 → 이력 누적) ──
+  const ctSheet = SS.getSheetByName('계약정보');
 
-  CH.showToast('저장 중...', true);
+  // 계약종료일 자동계산
+  const 종료일 = calcEndDate(d['계약시작일'], d['계약기간']);
 
-  try {
-    const result = await CH.post('saveContract', data);
-    if (result.ok || result.duplicate) {
-      CH.showToast('저장되었습니다.');
-      resetForm();
-      // 저장 후 해당 기관 상세로 이동
-      if (result.centerID) {
-        setTimeout(() => {
-          location.href = `detail.html?id=${encodeURIComponent(result.centerID)}`;
-        }, 1000);
-      }
-    } else {
-      CH.showToast('저장 오류: ' + (result.error || ''));
+  const ctRowData = SCHEMA.계약정보.map(h => {
+    if (h === 'centerID')   return centerID;
+    if (h === '계약종료일') return 종료일;
+    if (h === '입력자')     return user.id;
+    if (h === '입력자지사') return user.branch || '';
+    if (h === '입력일')     return now;
+    return String(d[h] || '');
+  });
+
+  ctSheet.appendRow(ctRowData);
+  writeLog(user, '계약정보', centerID, '', ['계약입력'], [''], ['완료']);
+
+  return res({ ok: true, centerID });
+}
+
+// ============================================================
+// 기관마스터 단독 저장 (detail.html 수정 시)
+// ============================================================
+function saveInstitution(body, user) {
+  if (user.role === 'branch') return res({ ok: false, error: 'forbidden' });
+
+  const d        = body.data;
+  const centerID = String(d['centerID'] || '').trim();
+  if (!centerID) return res({ ok: false, error: 'centerID 없음' });
+
+  const now     = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+  const sheet   = SS.getSheetByName('기관마스터');
+  const rows    = sheet.getDataRange().getValues();
+  const headers = rows[0];
+
+  let targetRow = -1;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === centerID) { targetRow = i + 1; break; }
+  }
+
+  const rowData = SCHEMA.기관마스터.map(h => {
+    if (h === '등록일')     return targetRow > 0
+      ? String(rows[targetRow - 1][headers.indexOf('등록일')] || now) : now;
+    if (h === '수정일')     return now;
+    if (h === '진행단계')   return targetRow > 0
+      ? String(rows[targetRow - 1][headers.indexOf('진행단계')] || '1') : '1';
+    if (h === '임시ID여부') return targetRow > 0
+      ? String(rows[targetRow - 1][headers.indexOf('임시ID여부')] || 'N') : 'N';
+    return String(d[h] || '');
+  });
+
+  if (targetRow > 0) {
+    const before = rows[targetRow - 1].map(v => String(v || ''));
+    sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+    writeLog(user, '기관마스터', centerID, '', SCHEMA.기관마스터, before, rowData);
+  } else {
+    sheet.appendRow(rowData);
+    writeLog(user, '기관마스터', centerID, '', ['신규등록'], [''], ['완료']);
+  }
+  return res({ ok: true });
+}
+
+// ============================================================
+// 교실정보 저장
+// ============================================================
+function saveClassroom(body, user) {
+  if (user.role === 'branch') return res({ ok: false, error: 'forbidden' });
+
+  const d      = body.data;
+  const siteID = String(d['siteID'] || '').trim();
+  if (!siteID) return res({ ok: false, error: 'siteID 없음' });
+
+  if (!d['centerID']) d['centerID'] = siteID.split('_').slice(0, -1).join('_') || siteID;
+
+  const sheet   = SS.getSheetByName('교실정보');
+  const rows    = sheet.getDataRange().getValues();
+  const headers = rows[0];
+
+  let targetRow = -1;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === siteID) { targetRow = i + 1; break; }
+  }
+
+  const rowData = SCHEMA.교실정보.map(h => {
+    if (h === '교실상태') return d['교실상태'] || '활성';
+    // OMS 컬럼은 기존 값 유지 (신규면 빈값)
+    if (h === 'OMS_상태' || h === 'OMS_서비스요일' || h === 'OMS_스케줄') {
+      return targetRow > 0
+        ? String(rows[targetRow - 1][headers.indexOf(h)] || '') : '';
     }
-  } catch(e) {
-    CH.showToast('서버 연결 오류');
+    return String(d[h] || '');
+  });
+
+  if (targetRow > 0) {
+    const before = rows[targetRow - 1].map(v => String(v || ''));
+    sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+    writeLog(user, '교실정보', d['centerID'], siteID, SCHEMA.교실정보, before, rowData);
+  } else {
+    sheet.appendRow(rowData);
+    writeLog(user, '교실정보', d['centerID'], siteID, ['신규등록'], [''], ['완료']);
+  }
+  return res({ ok: true });
+}
+
+// ============================================================
+// siteID 확정 (임시ID → 실제ID)
+// ============================================================
+function confirmSiteId(body, user) {
+  if (user.role === 'branch') return res({ ok: false, error: 'forbidden' });
+
+  const oldId = String(body.oldId || '').trim();
+  const newId = String(body.newId || '').trim();
+  if (!oldId || !newId)          return res({ ok: false, error: 'ID 없음' });
+  if (newId.startsWith('tmp_')) return res({ ok: false, error: 'tmp_ 로 시작 불가' });
+
+  const now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+
+  // 기관마스터
+  const instSheet   = SS.getSheetByName('기관마스터');
+  const instRows    = instSheet.getDataRange().getValues();
+  const instHeaders = instRows[0];
+  for (let i = 1; i < instRows.length; i++) {
+    if (String(instRows[i][0]).trim() === oldId) {
+      instSheet.getRange(i + 1, 1).setValue(newId);
+      const tmpCol = instHeaders.indexOf('임시ID여부') + 1;
+      const stgCol = instHeaders.indexOf('진행단계')   + 1;
+      const modCol = instHeaders.indexOf('수정일')     + 1;
+      if (tmpCol > 0) instSheet.getRange(i + 1, tmpCol).setValue('N');
+      if (stgCol > 0) instSheet.getRange(i + 1, stgCol).setValue('3');
+      if (modCol > 0) instSheet.getRange(i + 1, modCol).setValue(now);
+      break;
+    }
+  }
+
+  // 계약정보 (여러 행 모두)
+  const ctSheet = SS.getSheetByName('계약정보');
+  const ctRows  = ctSheet.getDataRange().getValues();
+  for (let i = 1; i < ctRows.length; i++) {
+    if (String(ctRows[i][0]).trim() === oldId) {
+      ctSheet.getRange(i + 1, 1).setValue(newId);
+    }
+  }
+
+  // 교실정보 (여러 행 모두)
+  const clsSheet   = SS.getSheetByName('교실정보');
+  const clsRows    = clsSheet.getDataRange().getValues();
+  const clsHeaders = clsRows[0];
+  const cidIdx     = clsHeaders.indexOf('centerID') + 1;
+  for (let i = 1; i < clsRows.length; i++) {
+    if (String(clsRows[i][cidIdx - 1]).trim() === oldId) {
+      clsSheet.getRange(i + 1, cidIdx).setValue(newId);
+    }
+  }
+
+  writeLog(user, '기관마스터', newId, '', ['siteID확정'], [oldId], [newId]);
+  return res({ ok: true });
+}
+
+// ============================================================
+// 진행단계 업데이트
+// ============================================================
+function updateStage(body, user) {
+  if (user.role === 'branch') return res({ ok: false, error: 'forbidden' });
+  const centerID = String(body['기관ID'] || body.centerID || '').trim();
+  const stage    = String(body.stage || '');
+  return updateStageById(centerID, stage, user);
+}
+
+function updateStageById(centerID, stage, user) {
+  const now     = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+  const sheet   = SS.getSheetByName('기관마스터');
+  const rows    = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const stgCol  = headers.indexOf('진행단계') + 1;
+  const modCol  = headers.indexOf('수정일')   + 1;
+  if (stgCol < 1) return res({ ok: false, error: '진행단계 컬럼 없음' });
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === centerID) {
+      const before = String(rows[i][stgCol - 1] || '');
+      sheet.getRange(i + 1, stgCol).setValue(stage);
+      if (modCol > 0) sheet.getRange(i + 1, modCol).setValue(now);
+      writeLog(user, '기관마스터', centerID, '', ['진행단계'], [before], [stage]);
+      return res({ ok: true });
+    }
+  }
+  return res({ ok: false, error: '기관 없음' });
+}
+
+// ============================================================
+// 계약 취소 (진행단계 7 + 교실 비활성)
+// ============================================================
+function cancelContract(body, user) {
+  if (user.role === 'branch') return res({ ok: false, error: 'forbidden' });
+  const centerID = String(body.centerID || '').trim();
+  if (!centerID) return res({ ok: false, error: 'centerID 없음' });
+
+  // 진행단계 → 7
+  updateStageById(centerID, '7', user);
+
+  // 해당 기관 교실 전체 비활성
+  const clsSheet   = SS.getSheetByName('교실정보');
+  const clsRows    = clsSheet.getDataRange().getValues();
+  const clsHeaders = clsRows[0];
+  const cidIdx     = clsHeaders.indexOf('centerID');
+  const statusIdx  = clsHeaders.indexOf('교실상태') + 1;
+
+  for (let i = 1; i < clsRows.length; i++) {
+    if (String(clsRows[i][cidIdx] || '').trim() === centerID && statusIdx > 0) {
+      clsSheet.getRange(i + 1, statusIdx).setValue('비활성');
+    }
+  }
+
+  writeLog(user, '기관마스터', centerID, '', ['계약취소'], [''], ['완료']);
+  return res({ ok: true });
+}
+
+// ============================================================
+// OMS_SITE_INFO 파싱 및 저장
+// ============================================================
+function parseOmsJson(body, user) {
+  const jsonStr = String(body.data?.json || '').trim();
+  if (!jsonStr) return res({ ok: false, error: 'JSON 없음' });
+
+  let parsed;
+  try { parsed = JSON.parse(jsonStr); }
+  catch(e) { return res({ ok: false, error: 'JSON 파싱 오류: ' + e.message }); }
+
+  const sites = Array.isArray(parsed) ? parsed : Object.values(parsed);
+  if (!sites.length) return res({ ok: false, error: '데이터 없음' });
+
+  const omsSheet = SS.getSheetByName('OMS_SITE_INFO');
+  if (!omsSheet) return res({ ok: false, error: 'OMS_SITE_INFO 시트 없음' });
+
+  const headers = omsSheet.getRange(1, 1, 1, omsSheet.getLastColumn()).getValues()[0];
+  if (omsSheet.getLastRow() > 1) {
+    omsSheet.getRange(2, 1, omsSheet.getLastRow() - 1, headers.length).clearContent();
+  }
+
+  const rows = sites.map(site => headers.map(h => {
+    const val = site[h];
+    if (Array.isArray(val)) return val.join(',');
+    return val !== undefined ? String(val) : '';
+  }));
+
+  if (rows.length > 0) {
+    omsSheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  }
+
+  syncOmsToClassrooms();
+  return res({ ok: true, count: rows.length });
+}
+
+// ============================================================
+// OMS_SITE_INFO → 교실정보 동기화
+// ============================================================
+function syncOmsToClassrooms() {
+  const omsSheet = SS.getSheetByName('OMS_SITE_INFO');
+  const clsSheet = SS.getSheetByName('교실정보');
+  if (!omsSheet || !clsSheet) return;
+
+  const omsRows    = omsSheet.getDataRange().getValues();
+  const omsHeaders = omsRows[0];
+  const clsRows    = clsSheet.getDataRange().getValues();
+  const clsHeaders = clsRows[0];
+
+  const omsCol = {
+    siteID:   omsHeaders.indexOf('siteID'),
+    status:   omsHeaders.indexOf('classroomServiceStatus'),
+    days:     omsHeaders.indexOf('serviceDays'),
+    schedule: omsHeaders.indexOf('schedule'),
+  };
+  const clsCol = {
+    siteID:      clsHeaders.indexOf('siteID'),
+    omsStatus:   clsHeaders.indexOf('OMS_상태'),
+    omsDays:     clsHeaders.indexOf('OMS_서비스요일'),
+    omsSchedule: clsHeaders.indexOf('OMS_스케줄'),
+  };
+
+  if (omsCol.siteID < 0 || clsCol.siteID < 0) return;
+
+  // OMS 맵
+  const omsMap = {};
+  for (let i = 1; i < omsRows.length; i++) {
+    const sid = String(omsRows[i][omsCol.siteID] || '').trim();
+    if (!sid) continue;
+    omsMap[sid] = {
+      status:   String(omsRows[i][omsCol.status]   || ''),
+      days:     String(omsRows[i][omsCol.days]      || ''),
+      schedule: String(omsRows[i][omsCol.schedule]  || ''),
+    };
+  }
+
+  // 교실정보 업데이트
+  let count = 0;
+  for (let i = 1; i < clsRows.length; i++) {
+    const sid = String(clsRows[i][clsCol.siteID] || '').trim();
+    if (!sid || !omsMap[sid]) continue;
+    const oms = omsMap[sid];
+    const row = i + 1;
+    if (clsCol.omsStatus   >= 0) clsSheet.getRange(row, clsCol.omsStatus   + 1).setValue(oms.status);
+    if (clsCol.omsDays     >= 0) clsSheet.getRange(row, clsCol.omsDays     + 1).setValue(oms.days);
+    if (clsCol.omsSchedule >= 0) clsSheet.getRange(row, clsCol.omsSchedule + 1).setValue(oms.schedule);
+    count++;
+  }
+  Logger.log(`OMS 동기화: ${count}개 교실 업데이트`);
+}
+
+// ============================================================
+// 수동 OMS 동기화 (Apps Script에서 직접 실행)
+// ============================================================
+function manualSyncOms() {
+  syncOmsToClassrooms();
+  Logger.log('수동 OMS 동기화 완료');
+}
+
+// ============================================================
+// Slack 이벤트 처리
+// ============================================================
+function handleSlackEvent(body) {
+  const event     = body.event || {};
+  const channelId = event.channel || '';
+  const ts        = event.ts     || '';
+
+  // 중복 이벤트 방지
+  const props = PropertiesService.getScriptProperties();
+  const key   = 'slack_' + ts;
+  if (props.getProperty(key)) return res({ ok: true });
+  props.setProperty(key, '1');
+
+  // OMS JSON 메시지 감지 (배열로 시작하는 메시지)
+  const text = (event.text || event.blocks?.[0]?.elements?.[0]?.elements?.[0]?.text || '').trim();
+  if (text.startsWith('[') && channelId) {
+    try {
+      parseOmsJson(
+        { data: { json: text } },
+        { id: 'slack', role: 'admin', branch: '' }
+      );
+    } catch(e) {
+      Logger.log('Slack OMS 파싱 오류: ' + e.message);
+    }
+  }
+  return res({ ok: true });
+}
+
+// ============================================================
+// 변경로그 기록
+// ============================================================
+function writeLog(user, sheetName, centerID, siteID, headers, before, after) {
+  const logSheet = SS.getSheetByName('변경로그');
+  if (!logSheet) return;
+  const now  = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+  const logs = [];
+  headers.forEach((h, i) => {
+    const b = String(before[i] || '');
+    const a = String(after[i]  || '');
+    if (b !== a) logs.push([now, user.id, sheetName, centerID, siteID || '', h, b, a]);
+  });
+  if (logs.length > 0) {
+    logSheet.getRange(logSheet.getLastRow() + 1, 1, logs.length, 8).setValues(logs);
   }
 }
 
-// ==============================
-// 폼 초기화
-// ==============================
-function resetForm() {
-  ['기관명','계약일자','계약시작일','계약종료일','계약기간',
-   '부모님서비스','담당지사','주소_시도','주소_상세',
-   '원장님성함','원장님연락처','비고'].forEach(k => {
-    const el = document.getElementById('ct-' + k);
-    if (el) el.value = '';
+// ============================================================
+// Sheets 초기 세팅 (최초 1회 실행)
+// ============================================================
+function setupSheets() {
+  const sheetsConfig = [
+    { name: '기관마스터',   headers: SCHEMA.기관마스터   },
+    { name: '계약정보',     headers: SCHEMA.계약정보     },
+    { name: '교실정보',     headers: SCHEMA.교실정보     },
+    { name: '변경로그',     headers: SCHEMA.변경로그     },
+    { name: 'accounts',    headers: SCHEMA.accounts     },
+    { name: '지사목록',     headers: SCHEMA.지사목록     },
+    { name: 'OMS_SITE_INFO', headers: SCHEMA.OMS_SITE_INFO },
+  ];
+
+  sheetsConfig.forEach(({ name, headers }) => {
+    let sheet = SS.getSheetByName(name);
+    if (!sheet) {
+      sheet = SS.insertSheet(name);
+      Logger.log(`시트 생성: ${name}`);
+    }
+    // 헤더가 비어있으면 세팅
+    const firstCell = sheet.getRange(1, 1).getValue();
+    if (!firstCell) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      // 헤더 스타일
+      const headerRange = sheet.getRange(1, 1, 1, headers.length);
+      headerRange.setBackground('#1a3a6b');
+      headerRange.setFontColor('#ffffff');
+      headerRange.setFontWeight('bold');
+      sheet.setFrozenRows(1);
+      Logger.log(`헤더 세팅: ${name}`);
+    }
   });
-  const preview = document.getElementById('tmpIdPreview');
-  if (preview) preview.style.display = 'none';
+
+  Logger.log('✅ Sheets 초기 세팅 완료');
 }
-</script>
-</body>
-</html>

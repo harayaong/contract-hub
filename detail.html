@@ -786,26 +786,11 @@ async function saveMemos() {
   const raw = memoToRaw(memos);
   inst['비고'] = raw;
 
-  // saveInstitution API로 비고만 업데이트
-  const data = {
-    centerID:      inst['centerID'],
-    기관명:        inst['기관명'],
-    고객표시명:    inst['고객표시명'],
-    담당지사:      inst['담당지사'],
-    주소_시도:     inst['주소_시도'],
-    주소_군구:     inst['주소_군구'],
-    주소_상세:     inst['주소_상세'],
-    원장님성함:    inst['원장님성함'],
-    원장님연락처:  inst['원장님연락처'],
-    대표교사연락처: inst['대표교사연락처'],
-    비고:          raw,
-    임시ID여부:    inst['임시ID여부'],
-    진행단계:      inst['진행단계'],
-    등록일:        inst['등록일'],
-  };
-
   CH.showToast('저장 중...', true);
-  const result = await CH.post('saveInstitution', data);
+  const result = await CH.post('saveMemo', {
+    centerID: inst['centerID'],
+    memo:     raw,
+  });
   if (result.ok || result.duplicate) {
     CH.showToast('비고가 저장되었습니다.');
     renderMemos();

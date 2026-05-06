@@ -246,7 +246,7 @@ function renderDetail() {
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${CH.role !== 'branch' ? `<button class="btn btn-secondary btn-sm" onclick="toggleEditInst()">기관 정보 수정</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="toggleEditInst()">기관 정보 수정</button>
           ${stageBtn}
         </div>
       </div>
@@ -263,15 +263,21 @@ function renderDetail() {
           </div>
           ${CH.role === 'admin' ? `
           <div class="form-group">
-            <label>고객표시명</label>
+            <label>고객표시명 <span style="font-size:10px;color:var(--text-hint)">(admin 전용)</span></label>
             <input id="ei-고객표시명" value="${inst['고객표시명']||''}">
           </div>` : ''}
+          ${CH.role === 'admin' ? `
           <div class="form-group">
-            <label>담당지사</label>
+            <label>담당지사 <span style="font-size:10px;color:var(--text-hint)">(admin 전용)</span></label>
             <select id="ei-담당지사">
               <option value="${inst['담당지사']||''}">${inst['담당지사']||'선택'}</option>
             </select>
-          </div>
+          </div>` : `
+          <div class="form-group">
+            <label>담당지사</label>
+            <input value="${inst['담당지사']||'-'}" readonly
+              style="background:#f8fafc;color:var(--text-sub);cursor:not-allowed">
+          </div>`}
           <div class="form-group">
             <label>주소 시도</label>
             <select id="ei-주소_시도" onchange="onEditSidoChange()">

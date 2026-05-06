@@ -124,10 +124,11 @@
             <div class="tmp-id-preview" id="tmpIdPreview"></div>
           </div>
 
-          <div class="form-group full">
+          <!-- 고객표시명: admin만 표시 -->
+          <div class="form-group full" id="group-고객표시명" style="display:none">
             <label>고객 표시명</label>
             <input id="ct-고객표시명" placeholder="OMS·앱에 표시되는 이름 (미입력 시 기관명과 동일)">
-            <div class="sync-hint" id="syncHint"></div>
+            <div class="field-hint">admin만 입력 가능합니다</div>
           </div>
 
           <div class="form-group" id="jisa-group">
@@ -143,10 +144,16 @@
           </div>
 
           <div class="form-group">
-            <label>원장님 연락처</label>
+            <label>원장님 연락처 <span style="color:#ef4444">*</span></label>
             <input id="ct-원장님연락처" placeholder="010-0000-0000"
-              oninput="formatPhone(this)" maxlength="13">
-            <div class="field-hint">숫자만 입력하면 자동으로 형식이 맞춰집니다</div>
+              oninput="formatPhone(this); checkTeacherPhone()" maxlength="13">
+          </div>
+
+          <div class="form-group">
+            <label>대표교사 연락처 <span style="color:var(--text-hint);font-weight:400">(선택)</span></label>
+            <input id="ct-대표교사연락처" placeholder="010-0000-0000"
+              oninput="formatPhone(this); checkTeacherPhone()" maxlength="13">
+            <div class="field-hint" id="teacherPhoneHint"></div>
           </div>
 
         </div>
@@ -158,7 +165,7 @@
         <div class="form-grid">
 
           <div class="form-group">
-            <label>시도</label>
+            <label>시도 <span style="color:#ef4444">*</span></label>
             <select id="ct-주소_시도" onchange="onSidoChange()">
               <option value="">선택</option>
               <option>서울</option><option>경기</option><option>인천</option>
@@ -171,15 +178,16 @@
           </div>
 
           <div class="form-group">
-            <label>군구</label>
+            <label>군구 <span style="color:#ef4444">*</span></label>
             <select id="ct-주소_군구" disabled>
               <option value="">시도 먼저 선택</option>
             </select>
           </div>
 
           <div class="form-group full">
-            <label>상세 주소</label>
-            <input id="ct-주소_상세" placeholder="읍·면·동, 번지, 건물명 등">
+            <label>상세 주소 <span style="color:#ef4444">*</span></label>
+            <input id="ct-주소_상세" placeholder="읍·면·동, 번지, 건물명 등 (5자 이상)" oninput="checkAddrDetail()">
+            <div class="field-hint" id="addrDetailHint"></div>
           </div>
 
         </div>
@@ -206,8 +214,9 @@
           </div>
 
           <div class="form-group">
-            <label>계약 시작일 <span style="color:#ef4444">*</span></label>
+            <label>계약 시작일 <span style="color:#ef4444" id="start-required">*</span></label>
             <input id="ct-계약시작일" type="date" onchange="calcEndDate()">
+            <div class="field-hint" id="startDateHint" style="display:none">admin만 입력 가능합니다</div>
           </div>
 
           <div class="form-group">
@@ -300,6 +309,19 @@ if (CH.role === 'branch') {
   loadJisaList();
 }
 
+// admin만 고객표시명 / 계약시작일 표시
+if (CH.role === 'admin') {
+  document.getElementById('group-고객표시명').style.display = '';
+} else {
+  // 비admin: 계약시작일 readonly + 힌트 표시
+  const startInput = document.getElementById('ct-계약시작일');
+  startInput.readOnly = true;
+  startInput.style.background = '#f8fafc';
+  startInput.style.cursor     = 'not-allowed';
+  document.getElementById('start-required').style.display = 'none';
+  document.getElementById('startDateHint').style.display  = '';
+}
+
 // 오늘 날짜를 계약일자 기본값으로
 document.getElementById('ct-계약일자').value = new Date().toISOString().slice(0, 10);
 
@@ -327,10 +349,7 @@ async function loadJisaList() {
 function onInstNameInput() {
   const 기관명  = document.getElementById('ct-기관명').value.trim();
   const preview = document.getElementById('tmpIdPreview');
-  const syncHint = document.getElementById('syncHint');
-  const 표시명  = document.getElementById('ct-고객표시명');
 
-  // 임시ID 프리뷰
   if (!기관명) {
     preview.style.display = 'none';
   } else {
@@ -344,13 +363,43 @@ function onInstNameInput() {
       }
       return c.toLowerCase();
     }).join('');
-    preview.textContent  = `임시ID 예시: tmp_${romanized || 'inst'}_****`;
+    preview.textContent   = `임시ID 예시: tmp_${romanized || 'inst'}_****`;
     preview.style.display = 'block';
   }
+}
 
-  // 고객표시명이 비어있으면 힌트 표시
-  if (!표시명.value.trim()) {
-    syncHint.textContent = 기관명 ? `미입력 시 "${기관명}"로 저장됩니다` : '';
+// ==============================
+// 상세주소 실시간 체크
+// ==============================
+function checkAddrDetail() {
+  const val  = document.getElementById('ct-주소_상세').value.trim();
+  const hint = document.getElementById('addrDetailHint');
+  if (!val) {
+    hint.textContent = '';
+  } else if (val.length < 5) {
+    hint.textContent = `${val.length}자 입력됨 — 5자 이상 입력해주세요`;
+    hint.style.color = '#ef4444';
+  } else {
+    hint.textContent = '✓';
+    hint.style.color = '#047857';
+  }
+}
+
+// ==============================
+// 대표교사 연락처 중복 체크
+// ==============================
+function checkTeacherPhone() {
+  const p1   = document.getElementById('ct-원장님연락처').value.trim();
+  const p2   = document.getElementById('ct-대표교사연락처').value.trim();
+  const hint = document.getElementById('teacherPhoneHint');
+  if (p2 && p1 && p1 === p2) {
+    hint.textContent = '⚠️ 원장님 연락처와 동일합니다. 다른 번호를 입력해주세요.';
+    hint.style.color = '#ef4444';
+  } else if (p2) {
+    hint.textContent = '✓';
+    hint.style.color = '#047857';
+  } else {
+    hint.textContent = '';
   }
 }
 
@@ -422,20 +471,35 @@ function selectPlan(plan) {
 // 유효성 검사
 // ==============================
 function validate() {
-  const 기관명     = document.getElementById('ct-기관명').value.trim();
-  const 계약일자   = document.getElementById('ct-계약일자').value;
-  const 계약기간   = document.getElementById('ct-계약기간').value;
-  const 계약시작일 = document.getElementById('ct-계약시작일').value;
-  const 교실수     = document.getElementById('ct-교실수').value;
-  const 담당지사   = CH.role === 'branch' ? CH.branch : document.getElementById('ct-담당지사').value;
+  const 기관명        = document.getElementById('ct-기관명').value.trim();
+  const 계약일자      = document.getElementById('ct-계약일자').value;
+  const 계약기간      = document.getElementById('ct-계약기간').value;
+  const 계약시작일    = document.getElementById('ct-계약시작일').value;
+  const 교실수        = document.getElementById('ct-교실수').value;
+  const 주소_시도     = document.getElementById('ct-주소_시도').value;
+  const 주소_군구     = document.getElementById('ct-주소_군구').value;
+  const 주소_상세     = document.getElementById('ct-주소_상세').value.trim();
+  const 원장님연락처  = document.getElementById('ct-원장님연락처').value.trim();
+  const 대표교사연락처 = document.getElementById('ct-대표교사연락처').value.trim();
+  const 담당지사      = CH.role === 'branch' ? CH.branch : document.getElementById('ct-담당지사').value;
 
-  if (!기관명)     { CH.showToast('기관명을 입력해주세요.');     return false; }
-  if (!담당지사)   { CH.showToast('담당 지사를 선택해주세요.');  return false; }
-  if (!계약일자)   { CH.showToast('계약 일자를 입력해주세요.');  return false; }
-  if (!계약기간)   { CH.showToast('계약 기간을 선택해주세요.');  return false; }
-  if (!계약시작일) { CH.showToast('계약 시작일을 입력해주세요.'); return false; }
+  if (!기관명)     { CH.showToast('기관명을 입력해주세요.');           return false; }
+  if (!담당지사)   { CH.showToast('담당 지사를 선택해주세요.');         return false; }
+  if (!주소_시도)  { CH.showToast('주소 시도를 선택해주세요.');         return false; }
+  if (!주소_군구)  { CH.showToast('주소 군구를 선택해주세요.');         return false; }
+  if (!주소_상세)  { CH.showToast('상세 주소를 입력해주세요.');         return false; }
+  if (주소_상세.length < 5) { CH.showToast('상세 주소는 5자 이상 입력해주세요.'); return false; }
+  if (!원장님연락처) { CH.showToast('원장님 연락처를 입력해주세요.');   return false; }
+  if (대표교사연락처 && 대표교사연락처 === 원장님연락처) {
+    CH.showToast('대표교사 연락처가 원장님 연락처와 동일합니다.'); return false;
+  }
+  if (!계약일자)   { CH.showToast('계약 일자를 입력해주세요.');         return false; }
+  if (!계약기간)   { CH.showToast('계약 기간을 선택해주세요.');         return false; }
+  if (CH.role === 'admin' && !계약시작일) {
+    CH.showToast('계약 시작일을 입력해주세요.'); return false;
+  }
   if (!교실수 || parseInt(교실수) < 1) { CH.showToast('교실 수를 입력해주세요.'); return false; }
-  if (!selectedPlan) { CH.showToast('플랜을 선택해주세요.');     return false; }
+  if (!selectedPlan) { CH.showToast('플랜을 선택해주세요.');            return false; }
   return true;
 }
 
@@ -446,25 +510,25 @@ async function saveContract() {
   if (!validate()) return;
 
   const data = {
-    기관명:      document.getElementById('ct-기관명').value.trim(),
-    고객표시명:  document.getElementById('ct-고객표시명').value.trim(),
-    담당지사:    CH.role === 'branch' ? CH.branch : document.getElementById('ct-담당지사').value,
-    원장님성함:  document.getElementById('ct-원장님성함').value.trim(),
-    원장님연락처: document.getElementById('ct-원장님연락처').value.trim(),
-    주소_시도:   document.getElementById('ct-주소_시도').value,
-    주소_군구:   document.getElementById('ct-주소_군구').value,
-    주소_상세:   document.getElementById('ct-주소_상세').value.trim(),
-    계약일자:    document.getElementById('ct-계약일자').value,
-    계약기간:    document.getElementById('ct-계약기간').value,
-    계약시작일:  document.getElementById('ct-계약시작일').value,
-    계약종료일:  document.getElementById('ct-계약종료일').value,
-    교실수:      document.getElementById('ct-교실수').value,
-    플랜:        selectedPlan,
-    비고:        document.getElementById('ct-비고').value.trim(),
+    기관명:          document.getElementById('ct-기관명').value.trim(),
+    고객표시명:      CH.role === 'admin'
+                      ? (document.getElementById('ct-고객표시명').value.trim() || document.getElementById('ct-기관명').value.trim())
+                      : document.getElementById('ct-기관명').value.trim(),
+    담당지사:        CH.role === 'branch' ? CH.branch : document.getElementById('ct-담당지사').value,
+    원장님성함:      document.getElementById('ct-원장님성함').value.trim(),
+    원장님연락처:    document.getElementById('ct-원장님연락처').value.trim(),
+    대표교사연락처:  document.getElementById('ct-대표교사연락처').value.trim(),
+    주소_시도:       document.getElementById('ct-주소_시도').value,
+    주소_군구:       document.getElementById('ct-주소_군구').value,
+    주소_상세:       document.getElementById('ct-주소_상세').value.trim(),
+    계약일자:        document.getElementById('ct-계약일자').value,
+    계약기간:        document.getElementById('ct-계약기간').value,
+    계약시작일:      CH.role === 'admin' ? document.getElementById('ct-계약시작일').value : '',
+    계약종료일:      CH.role === 'admin' ? document.getElementById('ct-계약종료일').value : '',
+    교실수:          document.getElementById('ct-교실수').value,
+    플랜:            selectedPlan,
+    비고:            document.getElementById('ct-비고').value.trim(),
   };
-
-  // 고객표시명 미입력 시 기관명으로
-  if (!data['고객표시명']) data['고객표시명'] = data['기관명'];
 
   CH.showToast('저장 중...', true);
 
@@ -489,7 +553,7 @@ async function saveContract() {
 // 폼 초기화
 // ==============================
 function resetForm() {
-  ['ct-기관명','ct-고객표시명','ct-원장님성함','ct-원장님연락처',
+  ['ct-기관명','ct-고객표시명','ct-원장님성함','ct-원장님연락처','ct-대표교사연락처',
    'ct-주소_상세','ct-계약기간','ct-계약시작일','ct-계약종료일',
    'ct-교실수','ct-비고'].forEach(id => {
     const el = document.getElementById(id);
@@ -509,7 +573,8 @@ function resetForm() {
 
   document.getElementById('tmpIdPreview').style.display  = 'none';
   document.getElementById('autoCalcHint').style.display  = 'none';
-  document.getElementById('syncHint').textContent        = '';
+  document.getElementById('addrDetailHint').textContent  = '';
+  document.getElementById('teacherPhoneHint').textContent = '';
 
   selectedPlan = '';
   document.getElementById('plan-standard').classList.remove('selected');

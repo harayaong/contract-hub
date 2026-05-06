@@ -185,15 +185,29 @@ function renderDetail() {
     </button>
   ` : '';
 
+  // 실제 운영 교실수 (활성 교실만 집계)
+  const 활성교실수 = clsData.filter(c => c['교실상태'] !== '비활성').length;
+  const 계약교실수 = ctData ? (ctData['교실수'] || '-') : '-';
+  const 교실수차이 = ctData && 활성교실수 !== parseInt(계약교실수)
+    ? `<span style="font-size:11px;color:#f59e0b;margin-left:6px">▲ 계약과 다름</span>` : '';
+
   // 계약 정보
   const ctHTML = ctData ? `
     <div class="info-grid">
       <div class="info-item"><span>계약일자</span><strong>${CH.fmtDate(ctData['계약일자'])}</strong></div>
-      <div class="info-item"><span>계약기간</span><strong>${ctData['계약기간']||'-'}</strong></div>
+      <div class="info-item"><span>계약기간</span><strong>${ctData['계약기간'] ? ctData['계약기간'] + '년' : '-'}</strong></div>
       <div class="info-item"><span>계약시작일</span><strong>${CH.fmtDate(ctData['계약시작일'])}</strong></div>
       <div class="info-item"><span>계약종료일</span><strong>${CH.fmtDate(ctData['계약종료일'])}</strong></div>
-      <div class="info-item"><span>부모님서비스</span><strong>${ctData['부모님서비스']||'-'}</strong></div>
+      <div class="info-item"><span>플랜</span><strong>${ctData['플랜']||'-'}</strong></div>
       <div class="info-item"><span>입력지사</span><strong>${ctData['입력자지사']||'-'}</strong></div>
+      <div class="info-item">
+        <span>계약 교실수</span>
+        <strong>${계약교실수}개</strong>
+      </div>
+      <div class="info-item">
+        <span>실제 운영 교실수</span>
+        <strong style="display:inline-flex;align-items:center">${활성교실수}개${교실수차이}</strong>
+      </div>
     </div>
   ` : '<div class="empty" style="padding:20px">계약 정보 없음</div>';
 
@@ -220,12 +234,15 @@ function renderDetail() {
         <div>
           <div style="font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             ${inst['기관명']||inst['centerID']}${tmpBadge}
+            ${inst['고객표시명'] && inst['고객표시명'] !== inst['기관명']
+              ? `<span style="font-size:13px;font-weight:400;color:var(--text-hint)">(${inst['고객표시명']})</span>` : ''}
           </div>
           <div style="font-size:13px;color:var(--text-hint);margin-top:4px">
-            ${inst['centerID']} · ${inst['담당지사']||'-'} · ${inst['주소_시도']||''} ${inst['주소_상세']||''}
+            ${inst['centerID']} · ${inst['담당지사']||'-'} · ${inst['주소_시도']||''} ${inst['주소_군구']||''} ${inst['주소_상세']||''}
           </div>
           <div style="font-size:13px;color:var(--text-hint);margin-top:2px">
             원장님: ${inst['원장님성함']||'-'} · ${inst['원장님연락처']||'-'}
+            ${inst['대표교사연락처'] ? ` · 대표교사: ${inst['대표교사연락처']}` : ''}
           </div>
         </div>
         ${stageBtn}

@@ -41,6 +41,28 @@
   @media (max-width: 768px) {
     .info-grid { grid-template-columns: 1fr; }
   }
+
+  /* 비고 섹션 */
+  .memo-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .memo-item {
+    background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .memo-item:hover { border-color: var(--primary-light); }
+  .memo-body { flex: 1; min-width: 0; }
+  .memo-meta { font-size: 11px; color: var(--text-hint); margin-bottom: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .memo-author { font-weight: 700; color: var(--text-sub); }
+  .memo-text { font-size: 13px; color: var(--text); white-space: pre-wrap; word-break: break-all; }
+  .memo-edit-area { width: 100%; font-size: 13px; border: 1.5px solid var(--primary-light); border-radius: 8px; padding: 8px 10px; font-family: inherit; resize: vertical; min-height: 60px; outline: none; }
+  .memo-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .memo-btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text-sub); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .memo-btn:hover { border-color: var(--primary-light); color: var(--primary); }
+  .memo-btn.danger:hover { border-color: #fca5a5; color: #dc2626; }
+  .memo-add-area { display: flex; gap: 8px; align-items: flex-end; }
+  .memo-add-area textarea { flex: 1; font-size: 13px; border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 10px; font-family: inherit; resize: none; height: 60px; outline: none; transition: border-color 0.2s; }
+  .memo-add-area textarea:focus { border-color: var(--primary-light); }
+  .memo-empty { font-size: 13px; color: var(--text-hint); text-align: center; padding: 20px 0; }
 </style>
 
 <!-- 사이드바 -->
@@ -307,10 +329,6 @@ function renderDetail() {
             <label>대표교사 연락처</label>
             <input id="ei-대표교사연락처" value="${inst['대표교사연락처']||''}" oninput="formatPhone(this)" maxlength="13">
           </div>
-          <div class="form-group full">
-            <label>비고</label>
-            <input id="ei-비고" value="${inst['비고']||''}">
-          </div>
         </div>
         <div class="btn-row">
           <button class="btn btn-secondary btn-sm" onclick="toggleEditInst()">취소</button>
@@ -391,7 +409,22 @@ function renderDetail() {
       </div>
       <div id="add-cls-wrap"></div>
     </div>
+
+    <!-- 비고 (메모) -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📝 비고</div>
+      </div>
+      <div class="memo-list" id="memo-list"></div>
+      <div class="memo-add-area">
+        <textarea id="memo-input" placeholder="비고 내용을 입력하세요..." oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+        <button class="btn btn-primary btn-sm" onclick="addMemo()" style="flex-shrink:0;height:60px">추가</button>
+      </div>
+    </div>
   `;
+
+  // 비고 렌더링
+  renderMemos();
 }
 
 // ==============================
@@ -475,7 +508,7 @@ async function saveInst() {
     원장님성함:    document.getElementById('ei-원장님성함')?.value.trim()     || inst['원장님성함'],
     원장님연락처:  document.getElementById('ei-원장님연락처')?.value.trim()   || inst['원장님연락처'],
     대표교사연락처: document.getElementById('ei-대표교사연락처')?.value.trim() || inst['대표교사연락처'],
-    비고:          document.getElementById('ei-비고')?.value.trim()           || inst['비고'],
+    비고:          inst['비고'],  // 비고는 하단 비고 섹션에서 별도 관리
     임시ID여부:    inst['임시ID여부'],
     진행단계:      inst['진행단계'],
     등록일:        inst['등록일'],
@@ -636,6 +669,151 @@ async function saveClassroom() {
     renderDetail();
   } else {
     CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+
+// ==============================
+// 비고 (메모) 관련 로직
+// ==============================
+
+// 비고는 JSON 배열 문자열로 기관마스터 비고 컬럼에 저장
+// 형식: [{"ts":"2026-05-06 14:30","author":"admin","text":"내용"}, ...]
+
+function parseMemos(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch(e) {}
+  // 기존 단순 텍스트 비고가 있다면 첫 항목으로 마이그레이션
+  if (raw.trim()) {
+    return [{ ts: '', author: '(기존)', text: raw.trim() }];
+  }
+  return [];
+}
+
+function memoToRaw(memos) {
+  return JSON.stringify(memos);
+}
+
+function nowStr() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+let memos = [];
+
+function renderMemos() {
+  memos = parseMemos(inst['비고'] || '');
+  const el = document.getElementById('memo-list');
+  if (!el) return;
+
+  if (!memos.length) {
+    el.innerHTML = '<div class="memo-empty">등록된 비고가 없습니다.</div>';
+    return;
+  }
+
+  el.innerHTML = memos.map((m, i) => `
+    <div class="memo-item" id="memo-item-${i}">
+      <div class="memo-body">
+        <div class="memo-meta">
+          <span class="memo-author">${m.author || '-'}</span>
+          ${m.ts ? `<span>${m.ts}</span>` : ''}
+        </div>
+        <div class="memo-text" id="memo-text-${i}">${escHtml(m.text)}</div>
+        <textarea class="memo-edit-area" id="memo-edit-${i}" style="display:none">${escHtml(m.text)}</textarea>
+      </div>
+      <div class="memo-actions">
+        <button class="memo-btn" id="memo-edit-btn-${i}" onclick="startEditMemo(${i})">수정</button>
+        <button class="memo-btn" id="memo-save-btn-${i}" style="display:none" onclick="saveEditMemo(${i})">저장</button>
+        <button class="memo-btn" id="memo-cancel-btn-${i}" style="display:none" onclick="cancelEditMemo(${i})">취소</button>
+        <button class="memo-btn danger" onclick="deleteMemo(${i})">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function startEditMemo(i) {
+  document.getElementById(`memo-text-${i}`).style.display = 'none';
+  document.getElementById(`memo-edit-${i}`).style.display = '';
+  document.getElementById(`memo-edit-btn-${i}`).style.display = 'none';
+  document.getElementById(`memo-save-btn-${i}`).style.display = '';
+  document.getElementById(`memo-cancel-btn-${i}`).style.display = '';
+}
+
+function cancelEditMemo(i) {
+  document.getElementById(`memo-text-${i}`).style.display = '';
+  document.getElementById(`memo-edit-${i}`).style.display = 'none';
+  document.getElementById(`memo-edit-btn-${i}`).style.display = '';
+  document.getElementById(`memo-save-btn-${i}`).style.display = 'none';
+  document.getElementById(`memo-cancel-btn-${i}`).style.display = 'none';
+}
+
+async function saveEditMemo(i) {
+  const newText = (document.getElementById(`memo-edit-${i}`)?.value || '').trim();
+  if (!newText) { CH.showToast('내용을 입력해주세요.'); return; }
+
+  memos[i] = { ...memos[i], text: newText, ts: memos[i].ts + ' (수정됨)' };
+  await saveMemos();
+}
+
+async function deleteMemo(i) {
+  if (!confirm('이 비고를 삭제하시겠습니까?')) return;
+  memos.splice(i, 1);
+  await saveMemos();
+}
+
+async function addMemo() {
+  const text = (document.getElementById('memo-input')?.value || '').trim();
+  if (!text) { CH.showToast('내용을 입력해주세요.'); return; }
+
+  const newMemo = {
+    ts:     nowStr(),
+    author: CH.name || CH.role || '-',
+    text,
+  };
+  memos.push(newMemo);
+  await saveMemos();
+  document.getElementById('memo-input').value = '';
+}
+
+async function saveMemos() {
+  const raw = memoToRaw(memos);
+  inst['비고'] = raw;
+
+  // saveInstitution API로 비고만 업데이트
+  const data = {
+    centerID:      inst['centerID'],
+    기관명:        inst['기관명'],
+    고객표시명:    inst['고객표시명'],
+    담당지사:      inst['담당지사'],
+    주소_시도:     inst['주소_시도'],
+    주소_군구:     inst['주소_군구'],
+    주소_상세:     inst['주소_상세'],
+    원장님성함:    inst['원장님성함'],
+    원장님연락처:  inst['원장님연락처'],
+    대표교사연락처: inst['대표교사연락처'],
+    비고:          raw,
+    임시ID여부:    inst['임시ID여부'],
+    진행단계:      inst['진행단계'],
+    등록일:        inst['등록일'],
+  };
+
+  CH.showToast('저장 중...', true);
+  const result = await CH.post('saveInstitution', data);
+  if (result.ok || result.duplicate) {
+    CH.showToast('비고가 저장되었습니다.');
+    renderMemos();
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+    // 실패 시 롤백
+    memos = parseMemos(inst['비고']);
+    renderMemos();
   }
 }
 </script>

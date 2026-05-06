@@ -107,7 +107,7 @@
       </div>
     </div>
 
-    <!-- 담당지사 + 시도 -->
+    <!-- 담당지사 + 시도 + 군구 -->
     <div class="filter-grid">
       <div class="filter-card" style="margin-bottom:0">
         <div class="filter-label">담당지사</div>
@@ -117,8 +117,26 @@
       </div>
       <div class="filter-card" style="margin-bottom:0">
         <div class="filter-label">시도</div>
-        <select class="f-select" id="f-sido" onchange="applyFilters()">
+        <select class="f-select" id="f-sido" onchange="onSidoChange()">
           <option value="">전체</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-grid" style="margin-top:12px">
+      <div class="filter-card" style="margin-bottom:0">
+        <div class="filter-label">군구</div>
+        <select class="f-select" id="f-gungu" onchange="applyFilters()">
+          <option value="">전체</option>
+        </select>
+      </div>
+      <div class="filter-card" style="margin-bottom:0">
+        <div class="filter-label">OMS 상태</div>
+        <select class="f-select" id="f-oms" onchange="applyFilters()">
+          <option value="">전체</option>
+          <option value="ON">ON</option>
+          <option value="OFF">OFF</option>
+          <option value="SANITY">SANITY</option>
+          <option value="NONE">미연동</option>
         </select>
       </div>
     </div>
@@ -146,76 +164,135 @@
 
 <script>
 if (!CH.requireAuth()) throw new Error('unauthorized');
-
-// 디버그
-console.log('token:', CH.token);
-console.log('role:', CH.role);
-console.log('name:', CH.name);  
 CH.renderNav('filter');
 
 const STAGE_LABELS = ['계약', 'Admin 등록', 'siteID 부여', '설치 완료', '업로드 확인', '서비스 오픈', '취소'];
+
 let ovData      = [];
+let omsMap      = {};
 let activeStage = 'all';
 let activeTmp   = 'all';
 
+// branch면 지사 필터 숨김
+if (CH.role === 'branch') {
+  const jisaCard = document.getElementById('f-jisa')?.closest('.filter-card');
+  if (jisaCard) jisaCard.style.display = 'none';
+}
+
 loadData();
 
+// ==============================
+// 데이터 로드
+// ==============================
 async function loadData() {
   try {
-    const d = await CH.get({ action: 'getInstitutions' });
-    console.log('API 응답:', d);
-    if (!d.ok) throw new Error(d.error);
-    ovData = d.data;
-    initFilterOptions();
+    const [instRes, omsRes, jisaRes] = await Promise.all([
+      CH.get({ action: 'getInstitutions' }),
+      CH.get({ action: 'getOmsStatus' }),
+      CH.get({ action: 'getJisaList' }),
+    ]);
+
+    if (!instRes.ok) throw new Error(instRes.error);
+    ovData = instRes.data;
+
+    // OMS 맵
+    omsMap = {};
+    if (omsRes.ok && omsRes.data) {
+      omsRes.data.forEach(cls => {
+        const cid = cls['centerID'] || '';
+        if (!cid) return;
+        if (!omsMap[cid]) omsMap[cid] = [];
+        omsMap[cid].push(cls);
+      });
+    }
+
+    // 지사 드롭다운 — getJisaList 기반
+    if (CH.role !== 'branch' && jisaRes.ok) {
+      const jisaSel = document.getElementById('f-jisa');
+      jisaRes.data.forEach(v => {
+        const o = document.createElement('option');
+        o.value = o.textContent = v;
+        jisaSel.appendChild(o);
+      });
+    }
+
+    // 시도 드롭다운 — 실제 데이터 기반
+    const sidoSet = new Set(ovData.map(r => r['주소_시도']).filter(Boolean));
+    const sidoSel = document.getElementById('f-sido');
+    [...sidoSet].sort().forEach(v => {
+      const o = document.createElement('option');
+      o.value = o.textContent = v;
+      sidoSel.appendChild(o);
+    });
+
     applyFilters();
   } catch(e) {
-    console.error('loadData 오류:', e);
     document.getElementById('filter-list').innerHTML =
       `<div class="empty">오류: ${e.message}</div>`;
   }
 }
 
 // ==============================
-// 필터 드롭다운 동적 생성
+// 시도 변경 시 군구 연동
 // ==============================
-function initFilterOptions() {
-  const jisaSet = new Set();
-  const sidoSet = new Set();
-  ovData.forEach(r => {
-    if (r['담당지사']) jisaSet.add(r['담당지사']);
-    if (r['주소_시도']) sidoSet.add(r['주소_시도']);
-  });
+function onSidoChange() {
+  const sido    = document.getElementById('f-sido').value;
+  const gunguSel = document.getElementById('f-gungu');
 
-  const jisaSel = document.getElementById('f-jisa');
-  [...jisaSet].sort().forEach(v => {
-    const o = document.createElement('option');
-    o.value = o.textContent = v;
-    jisaSel.appendChild(o);
-  });
+  gunguSel.innerHTML = '<option value="">전체</option>';
 
-  const sidoSel = document.getElementById('f-sido');
-  [...sidoSet].sort().forEach(v => {
-    const o = document.createElement('option');
-    o.value = o.textContent = v;
-    sidoSel.appendChild(o);
-  });
+  if (sido) {
+    const gunguSet = new Set(
+      ovData.filter(r => r['주소_시도'] === sido && r['주소_군구'])
+            .map(r => r['주소_군구'])
+    );
+    [...gunguSet].sort().forEach(v => {
+      const o = document.createElement('option');
+      o.value = o.textContent = v;
+      gunguSel.appendChild(o);
+    });
+  }
+
+  applyFilters();
 }
 
 // ==============================
 // 필터 적용
 // ==============================
 function applyFilters() {
-  const q    = (document.getElementById('f-search')?.value || '').toLowerCase();
-  const jisa = document.getElementById('f-jisa')?.value || '';
-  const sido = document.getElementById('f-sido')?.value || '';
+  const q     = (document.getElementById('f-search')?.value || '').toLowerCase();
+  const jisa  = document.getElementById('f-jisa')?.value  || '';
+  const sido  = document.getElementById('f-sido')?.value  || '';
+  const gungu = document.getElementById('f-gungu')?.value || '';
+  const oms   = document.getElementById('f-oms')?.value   || '';
 
   const filtered = ovData.filter(r => {
-    const matchQ     = !q || (r['기관명']||'').toLowerCase().includes(q) || (r['centerID']||'').toLowerCase().includes(q);
+    const matchQ     = !q     || (r['기관명']||'').toLowerCase().includes(q)
+                               || (r['centerID']||'').toLowerCase().includes(q);
     const matchStage = activeStage === 'all' || r['진행단계'] === activeStage;
-    const matchJisa  = !jisa || r['담당지사'] === jisa;
-    const matchSido  = !sido || r['주소_시도'] === sido;
+    const matchJisa  = !jisa  || r['담당지사']  === jisa;
+    const matchSido  = !sido  || r['주소_시도'] === sido;
+    const matchGungu = !gungu || r['주소_군구'] === gungu;
     const matchTmp   = activeTmp === 'all' || r['임시ID여부'] === activeTmp;
-    return matchQ && matchStage && matchJisa && matchSido && matchTmp;
+
+    // OMS 필터
+    let matchOms = true;
+    if (oms) {
+      const clsList = omsMap[r['centerID']] || [];
+      if (oms === 'NONE') {
+        matchOms = clsList.length === 0;
+      } else {
+        matchOms = clsList.some(cls => {
+          const s = String(cls['OMS_상태'] || '').toUpperCase();
+          if (oms === 'ON')     return s === 'ON' || s === 'APPROVED';
+          if (oms === 'OFF')    return s === 'OFF';
+          if (oms === 'SANITY') return s.includes('SANITY');
+          return false;
+        });
+      }
+    }
+
+    return matchQ && matchStage && matchJisa && matchSido && matchGungu && matchTmp && matchOms;
   });
 
   document.getElementById('filterCount').textContent = `${filtered.length}건`;
@@ -244,6 +321,8 @@ function resetFilters() {
   document.getElementById('f-search').value = '';
   document.getElementById('f-jisa').value   = '';
   document.getElementById('f-sido').value   = '';
+  document.getElementById('f-gungu').innerHTML = '<option value="">전체</option>';
+  document.getElementById('f-oms').value    = '';
   activeStage = 'all';
   activeTmp   = 'all';
   document.querySelector('#stagePills .pill[data-stage="all"]')?.classList.add('active');
@@ -273,6 +352,27 @@ function instCardHTML(r) {
 
   const tmpBadge = isTmp ? `<span class="tag-tmp">임시ID</span>` : '';
 
+  // OMS 요약
+  const clsList = omsMap[r['centerID']] || [];
+  let omsSummary = '';
+  if (clsList.length > 0) {
+    const cnt = { ON: 0, OFF: 0, SANITY: 0 };
+    clsList.forEach(cls => {
+      const s = String(cls['OMS_상태'] || '').toUpperCase();
+      if (s === 'ON' || s === 'APPROVED') cnt.ON++;
+      else if (s === 'OFF')               cnt.OFF++;
+      else if (s.includes('SANITY'))      cnt.SANITY++;
+    });
+    const badges = [];
+    if (cnt.ON     > 0) badges.push(`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#d1fae5;color:#065f46">ON ${cnt.ON}</span>`);
+    if (cnt.OFF    > 0) badges.push(`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#fee2e2;color:#991b1b">OFF ${cnt.OFF}</span>`);
+    if (cnt.SANITY > 0) badges.push(`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#fef3c7;color:#92400e">SANITY ${cnt.SANITY}</span>`);
+    omsSummary = `<div style="display:flex;gap:4px;margin-top:6px;align-items:center">
+      <span style="font-size:11px;color:var(--text-hint)">교실 ${clsList.length}개</span>
+      ${badges.join('')}
+    </div>`;
+  }
+
   return `
     <div class="inst-card" onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
       <div style="flex:1;min-width:0">
@@ -280,8 +380,11 @@ function instCardHTML(r) {
           <span class="inst-name">${r['기관명'] || r['centerID']}</span>
           ${tmpBadge}
         </div>
-        <div class="inst-meta">${r['centerID']} · ${r['담당지사']||'-'} · ${r['주소_시도']||'-'}</div>
+        <div class="inst-meta">
+          ${r['centerID']} · ${r['담당지사']||'-'} · ${r['주소_시도']||'-'} ${r['주소_군구']||''}
+        </div>
         <div class="inst-stage-bar">${pips}</div>
+        ${omsSummary}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <span class="stage-tag ${tagCls}">${tagLabel}</span>

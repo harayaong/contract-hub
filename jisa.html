@@ -1,0 +1,494 @@
+<!-- 📋 Contract Hub: 기관 계약 관리 시스템 -->
+<!-- jisa.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 Contract Hub — 지사 관리</title>
+<script src="common.js"></script>
+</head>
+<body>
+<script> CH.injectStyle(); </script>
+
+<style>
+  /* 지사 카드 */
+  .jisa-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 12px; overflow: hidden;
+    transition: box-shadow 0.15s;
+  }
+  .jisa-card.inactive { opacity: 0.55; }
+  .jisa-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px; cursor: pointer;
+    user-select: none;
+  }
+  .jisa-header:hover { background: #f8fafc; }
+  .jisa-name  { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+  .jisa-meta  { font-size: 12px; color: var(--text-hint); margin-top: 2px; }
+  .jisa-chevron { font-size: 14px; color: var(--text-hint); transition: transform 0.2s; }
+  .jisa-card.open .jisa-chevron { transform: rotate(180deg); }
+
+  .active-badge   { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: #d1fae5; color: #065f46; }
+  .inactive-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: #f1f5f9; color: #94a3b8; }
+
+  /* 지사 상세 (펼쳐지는 영역) */
+  .jisa-body {
+    display: none; padding: 0 20px 20px; border-top: 1px solid var(--border);
+  }
+  .jisa-card.open .jisa-body { display: block; }
+
+  /* 지사 정보 그리드 */
+  .jisa-info-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 14px 0; font-size: 13px;
+  }
+  .jisa-info-item span:first-child { display: block; font-size: 11px; color: var(--text-hint); margin-bottom: 2px; }
+  .jisa-info-item strong { color: var(--text); }
+
+  /* 담당자 테이블 */
+  .staff-section-title {
+    font-size: 12px; font-weight: 700; color: var(--text-sub);
+    text-transform: uppercase; letter-spacing: 0.4px;
+    margin: 16px 0 10px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .staff-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .staff-row:last-child { border-bottom: none; }
+  .staff-name  { font-weight: 600; color: var(--text); min-width: 70px; }
+  .staff-role  { font-size: 11px; color: var(--text-hint); background: #f1f5f9; padding: 2px 7px; border-radius: 99px; }
+  .staff-contact { font-size: 12px; color: var(--text-sub); flex: 1; }
+  .staff-inactive { opacity: 0.4; }
+
+  /* 폼 영역 */
+  .inline-form {
+    background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-top: 12px;
+  }
+  .inline-form-title {
+    font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px;
+  }
+
+  /* 추가 버튼 */
+  .add-jisa-wrap { margin-bottom: 20px; text-align: right; }
+
+  @media (max-width: 768px) {
+    .jisa-info-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- 사이드바 -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">📋</div>
+    <span>Contract Hub</span>
+  </div>
+  <nav class="sidebar-nav" id="sideNav"></nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar"></div>
+      <div>
+        <div class="user-name" id="userName"></div>
+        <div class="user-role" id="userRole"></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="CH.logout()">로그아웃</button>
+  </div>
+</div>
+
+<div class="bottombar">
+  <div class="bottombar-inner" id="bottomNav"></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">지사 관리</div>
+      <div class="topbar-sub">지사 정보 및 담당자를 관리합니다</div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">지사 목록</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddJisa()">+ 지사 추가</button>
+      </div>
+
+      <!-- 지사 추가 폼 -->
+      <div id="add-jisa-form" style="display:none" class="inline-form" style="margin-bottom:16px">
+        <div class="inline-form-title">새 지사 추가</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>지사명 <span style="color:#ef4444">*</span></label>
+            <input id="new-지사명" placeholder="예: 한결교육">
+          </div>
+          <div class="form-group">
+            <label>담당 지역</label>
+            <input id="new-담당지역" placeholder="예: 경북, 강원 북부">
+          </div>
+          <div class="form-group">
+            <label>대표자명</label>
+            <input id="new-대표자명">
+          </div>
+          <div class="form-group">
+            <label>대표자 연락처</label>
+            <input id="new-대표자연락처" placeholder="010-0000-0000" oninput="formatPhone(this)" maxlength="13">
+          </div>
+          <div class="form-group">
+            <label>대표자 이메일</label>
+            <input id="new-대표자이메일" placeholder="example@email.com" type="email">
+          </div>
+          <div class="form-group">
+            <label>비고</label>
+            <input id="new-비고">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="closeAddJisa()">취소</button>
+          <button class="btn btn-primary btn-sm" onclick="saveJisa()">저장</button>
+        </div>
+      </div>
+
+      <div id="jisa-list"><div class="empty">불러오는 중...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+if (!CH.requireAuth()) throw new Error('unauthorized');
+if (CH.role !== 'admin') { location.href = 'overview.html'; throw new Error('forbidden'); }
+CH.renderNav('jisa');
+
+let jisaData  = [];  // 지사 목록
+let staffData = {};  // 지사명 → 담당자 배열
+
+loadAll();
+
+// ==============================
+// 전체 로드
+// ==============================
+async function loadAll() {
+  try {
+    const [jisaRes, staffRes] = await Promise.all([
+      CH.get({ action: 'getJisaAll' }),
+      CH.get({ action: 'getJisaStaff' }),
+    ]);
+    jisaData  = jisaRes.ok  ? jisaRes.data  : [];
+    staffData = {};
+    if (staffRes.ok) {
+      staffRes.data.forEach(s => {
+        const j = s['지사명'];
+        if (!staffData[j]) staffData[j] = [];
+        staffData[j].push(s);
+      });
+    }
+    renderJisaList();
+  } catch(e) {
+    document.getElementById('jisa-list').innerHTML = `<div class="empty">오류: ${e.message}</div>`;
+  }
+}
+
+// ==============================
+// 지사 목록 렌더링
+// ==============================
+function renderJisaList() {
+  const el = document.getElementById('jisa-list');
+  if (!jisaData.length) {
+    el.innerHTML = '<div class="empty">등록된 지사가 없습니다</div>';
+    return;
+  }
+  el.innerHTML = jisaData.map(j => jisaCardHTML(j)).join('');
+}
+
+function jisaCardHTML(j) {
+  const 지사명  = j['지사명'];
+  const isActive = j['active'] !== 'N';
+  const staff    = (staffData[지사명] || []).filter(s => s['active'] !== 'N');
+  const allStaff = staffData[지사명] || [];
+
+  const staffRows = allStaff.length ? allStaff.map(s => `
+    <div class="staff-row ${s['active'] === 'N' ? 'staff-inactive' : ''}">
+      <span class="staff-name">${s['담당자명']}</span>
+      ${s['역할'] ? `<span class="staff-role">${s['역할']}</span>` : ''}
+      <span class="staff-contact">
+        ${s['연락처'] ? `📞 ${s['연락처']}` : ''}
+        ${s['이메일'] ? ` · ✉️ ${s['이메일']}` : ''}
+      </span>
+      ${s['active'] !== 'N' ? `
+        <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px"
+          onclick="removeStaff('${지사명}', '${s['담당자명']}')">비활성</button>
+      ` : '<span style="font-size:11px;color:#94a3b8">비활성</span>'}
+    </div>
+  `).join('') : '<div style="font-size:13px;color:var(--text-hint);padding:8px 0">등록된 담당자 없음</div>';
+
+  return `
+    <div class="jisa-card ${isActive ? '' : 'inactive'}" id="jisa-card-${encodeURIComponent(지사명)}">
+      <div class="jisa-header" onclick="toggleCard('${encodeURIComponent(지사명)}')">
+        <div style="flex:1">
+          <div class="jisa-name">
+            ${지사명}
+            <span style="margin-left:6px">${isActive
+              ? '<span class="active-badge">활성</span>'
+              : '<span class="inactive-badge">비활성</span>'}</span>
+          </div>
+          <div class="jisa-meta">
+            ${j['담당지역'] ? `📍 ${j['담당지역']} · ` : ''}
+            담당자 ${staff.length}명
+            ${j['대표자명'] ? ` · 대표: ${j['대표자명']}` : ''}
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="font-size:11px"
+          onclick="event.stopPropagation(); toggleActive('${지사명}')">
+          ${isActive ? '비활성화' : '활성화'}
+        </button>
+        <span class="jisa-chevron">▼</span>
+      </div>
+      <div class="jisa-body">
+
+        <!-- 지사 기본정보 -->
+        <div class="jisa-info-grid">
+          <div class="jisa-info-item"><span>담당 지역</span><strong>${j['담당지역']||'-'}</strong></div>
+          <div class="jisa-info-item"><span>대표자</span><strong>${j['대표자명']||'-'}</strong></div>
+          <div class="jisa-info-item"><span>대표자 연락처</span><strong>${j['대표자연락처']||'-'}</strong></div>
+          <div class="jisa-info-item"><span>대표자 이메일</span><strong>${j['대표자이메일']||'-'}</strong></div>
+          <div class="jisa-info-item"><span>등록일</span><strong>${CH.fmtDate(j['등록일'])}</strong></div>
+          <div class="jisa-info-item"><span>비고</span><strong>${j['비고']||'-'}</strong></div>
+        </div>
+
+        <!-- 수정 버튼 -->
+        <button class="btn btn-secondary btn-sm" onclick="openEditJisa('${지사명}')">지사 정보 수정</button>
+
+        <!-- 수정 폼 (숨김) -->
+        <div id="edit-form-${encodeURIComponent(지사명)}" style="display:none" class="inline-form">
+          <div class="inline-form-title">지사 정보 수정</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>담당 지역</label>
+              <input id="edit-담당지역-${encodeURIComponent(지사명)}" value="${j['담당지역']||''}">
+            </div>
+            <div class="form-group">
+              <label>대표자명</label>
+              <input id="edit-대표자명-${encodeURIComponent(지사명)}" value="${j['대표자명']||''}">
+            </div>
+            <div class="form-group">
+              <label>대표자 연락처</label>
+              <input id="edit-대표자연락처-${encodeURIComponent(지사명)}" value="${j['대표자연락처']||''}"
+                oninput="formatPhone(this)" maxlength="13">
+            </div>
+            <div class="form-group">
+              <label>대표자 이메일</label>
+              <input id="edit-대표자이메일-${encodeURIComponent(지사명)}" value="${j['대표자이메일']||''}" type="email">
+            </div>
+            <div class="form-group full">
+              <label>비고</label>
+              <input id="edit-비고-${encodeURIComponent(지사명)}" value="${j['비고']||''}">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-secondary btn-sm" onclick="closeEditJisa('${encodeURIComponent(지사명)}')">취소</button>
+            <button class="btn btn-primary btn-sm" onclick="updateJisa('${지사명}', '${encodeURIComponent(지사명)}')">저장</button>
+          </div>
+        </div>
+
+        <!-- 담당자 목록 -->
+        <div class="staff-section-title">
+          <span>담당자</span>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px"
+            onclick="openAddStaff('${encodeURIComponent(지사명)}')">+ 담당자 추가</button>
+        </div>
+
+        <!-- 담당자 추가 폼 (숨김) -->
+        <div id="add-staff-${encodeURIComponent(지사명)}" style="display:none" class="inline-form">
+          <div class="inline-form-title">담당자 추가</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>담당자명 <span style="color:#ef4444">*</span></label>
+              <input id="staff-담당자명-${encodeURIComponent(지사명)}" placeholder="홍길동">
+            </div>
+            <div class="form-group">
+              <label>역할</label>
+              <input id="staff-역할-${encodeURIComponent(지사명)}" placeholder="영업, 설치, CS 등">
+            </div>
+            <div class="form-group">
+              <label>연락처</label>
+              <input id="staff-연락처-${encodeURIComponent(지사명)}" placeholder="010-0000-0000"
+                oninput="formatPhone(this)" maxlength="13">
+            </div>
+            <div class="form-group">
+              <label>이메일</label>
+              <input id="staff-이메일-${encodeURIComponent(지사명)}" placeholder="example@email.com" type="email">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-secondary btn-sm" onclick="closeAddStaff('${encodeURIComponent(지사명)}')">취소</button>
+            <button class="btn btn-primary btn-sm" onclick="saveStaff('${지사명}', '${encodeURIComponent(지사명)}')">저장</button>
+          </div>
+        </div>
+
+        <div id="staff-list-${encodeURIComponent(지사명)}">${staffRows}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ==============================
+// 카드 펼치기/접기
+// ==============================
+function toggleCard(encoded) {
+  const card = document.getElementById(`jisa-card-${encoded}`);
+  if (card) card.classList.toggle('open');
+}
+
+// ==============================
+// 지사 추가 폼
+// ==============================
+function openAddJisa() {
+  document.getElementById('add-jisa-form').style.display = '';
+}
+function closeAddJisa() {
+  document.getElementById('add-jisa-form').style.display = 'none';
+  ['지사명','담당지역','대표자명','대표자연락처','대표자이메일','비고']
+    .forEach(k => { const el = document.getElementById('new-' + k); if (el) el.value = ''; });
+}
+
+async function saveJisa() {
+  const 지사명 = document.getElementById('new-지사명').value.trim();
+  if (!지사명) { CH.showToast('지사명을 입력해주세요.'); return; }
+  if (jisaData.some(j => j['지사명'] === 지사명)) { CH.showToast('이미 존재하는 지사명입니다.'); return; }
+
+  const data = {
+    지사명,
+    담당지역:     document.getElementById('new-담당지역').value.trim(),
+    대표자명:     document.getElementById('new-대표자명').value.trim(),
+    대표자연락처: document.getElementById('new-대표자연락처').value.trim(),
+    대표자이메일: document.getElementById('new-대표자이메일').value.trim(),
+    비고:         document.getElementById('new-비고').value.trim(),
+    active:       'Y',
+  };
+
+  CH.showToast('저장 중...', true);
+  const result = await CH.post('saveJisa', data);
+  if (result.ok || result.duplicate) {
+    CH.showToast('저장되었습니다.');
+    closeAddJisa();
+    await loadAll();
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+
+// ==============================
+// 지사 정보 수정
+// ==============================
+function openEditJisa(지사명) {
+  const encoded = encodeURIComponent(지사명);
+  document.getElementById(`edit-form-${encoded}`).style.display = '';
+}
+function closeEditJisa(encoded) {
+  document.getElementById(`edit-form-${encoded}`).style.display = 'none';
+}
+
+async function updateJisa(지사명, encoded) {
+  const j = jisaData.find(x => x['지사명'] === 지사명);
+  const data = {
+    지사명,
+    담당지역:     document.getElementById(`edit-담당지역-${encoded}`).value.trim(),
+    대표자명:     document.getElementById(`edit-대표자명-${encoded}`).value.trim(),
+    대표자연락처: document.getElementById(`edit-대표자연락처-${encoded}`).value.trim(),
+    대표자이메일: document.getElementById(`edit-대표자이메일-${encoded}`).value.trim(),
+    비고:         document.getElementById(`edit-비고-${encoded}`).value.trim(),
+    active:       j ? j['active'] : 'Y',
+  };
+
+  CH.showToast('저장 중...', true);
+  const result = await CH.post('saveJisa', data);
+  if (result.ok || result.duplicate) {
+    CH.showToast('수정되었습니다.');
+    await loadAll();
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+
+// ==============================
+// 지사 활성/비활성 토글
+// ==============================
+async function toggleActive(지사명) {
+  const result = await CH.post('toggleJisa', { 지사명 });
+  if (result.ok) {
+    CH.showToast(result.active === 'Y' ? '활성화되었습니다.' : '비활성화되었습니다.');
+    await loadAll();
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+
+// ==============================
+// 담당자 추가 폼
+// ==============================
+function openAddStaff(encoded) {
+  document.getElementById(`add-staff-${encoded}`).style.display = '';
+}
+function closeAddStaff(encoded) {
+  document.getElementById(`add-staff-${encoded}`).style.display = 'none';
+  ['담당자명','역할','연락처','이메일'].forEach(k => {
+    const el = document.getElementById(`staff-${k}-${encoded}`); if (el) el.value = '';
+  });
+}
+
+async function saveStaff(지사명, encoded) {
+  const 담당자명 = document.getElementById(`staff-담당자명-${encoded}`).value.trim();
+  if (!담당자명) { CH.showToast('담당자명을 입력해주세요.'); return; }
+
+  const data = {
+    지사명,
+    담당자명,
+    역할:   document.getElementById(`staff-역할-${encoded}`).value.trim(),
+    연락처: document.getElementById(`staff-연락처-${encoded}`).value.trim(),
+    이메일: document.getElementById(`staff-이메일-${encoded}`).value.trim(),
+    active: 'Y',
+  };
+
+  CH.showToast('저장 중...', true);
+  const result = await CH.post('saveJisaStaff', data);
+  if (result.ok || result.duplicate) {
+    CH.showToast('저장되었습니다.');
+    closeAddStaff(encoded);
+    await loadAll();
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+
+// ==============================
+// 담당자 비활성 처리
+// ==============================
+async function removeStaff(지사명, 담당자명) {
+  if (!confirm(`${담당자명}님을 비활성 처리할까요?`)) return;
+  const result = await CH.post('deleteJisaStaff', { 지사명, 담당자명 });
+  if (result.ok) {
+    CH.showToast('비활성 처리되었습니다.');
+    await loadAll();
+  } else {
+    CH.showToast('오류: ' + (result.error || ''));
+  }
+}
+
+// ==============================
+// 전화번호 자동 포맷
+// ==============================
+function formatPhone(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (v.length <= 3)      input.value = v;
+  else if (v.length <= 7) input.value = v.slice(0,3) + '-' + v.slice(3);
+  else                    input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+}
+</script>
+</body>
+</html>

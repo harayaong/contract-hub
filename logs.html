@@ -116,19 +116,20 @@
 
 <script>
 if (!CH.requireAuth()) throw new Error('unauthorized');
-
-// 지사 계정은 접근 불가
-if (CH.role === 'branch') location.href = 'contract.html';
-
 CH.renderNav('logs');
+
+const isBranch = CH.role === 'branch';
+
+// branch면 타이틀 변경
+if (isBranch) {
+  document.querySelector('.topbar-title').textContent = '변경 로그';
+  document.querySelector('.topbar-sub').textContent   = '담당 기관의 변경 이력을 확인합니다';
+}
 
 let logData = [];
 
 loadLogs();
 
-// ==============================
-// 로그 로드
-// ==============================
 async function loadLogs() {
   document.getElementById('log-tbody').innerHTML =
     '<tr><td colspan="7" class="empty">데이터 불러오는 중...</td></tr>';
@@ -144,18 +145,15 @@ async function loadLogs() {
   }
 }
 
-// ==============================
-// 필터 적용
-// ==============================
 function applyLogFilter() {
   const q     = (document.getElementById('log-search')?.value || '').toLowerCase();
   const sheet = document.getElementById('log-sheet')?.value || '';
 
   const filtered = logData.filter(r => {
-    const matchQ     = !q ||
-      (r['centerID']  ||'').toLowerCase().includes(q) ||
-      (r['처리자']    ||'').toLowerCase().includes(q) ||
-      (r['변경항목']  ||'').toLowerCase().includes(q);
+    const matchQ = !q ||
+      (r['centerID'] ||'').toLowerCase().includes(q) ||
+      (r['처리자']   ||'').toLowerCase().includes(q) ||
+      (r['항목']     ||'').toLowerCase().includes(q);
     const matchSheet = !sheet || r['대상시트'] === sheet;
     return matchQ && matchSheet;
   });
@@ -170,19 +168,20 @@ function applyLogFilter() {
 
   tb.innerHTML = filtered.map(r => `
     <tr>
-      <td style="white-space:nowrap;color:var(--text-hint)">${CH.fmtDate(r['변경일시'])}</td>
+      <td style="white-space:nowrap;color:var(--text-hint)">${CH.fmtDate(r['일시'])}</td>
       <td><strong>${r['처리자']||''}</strong></td>
       <td>${r['대상시트']||''}</td>
       <td>
-        ${r['centerID'] || r['기관ID'] || ''}
-        ${r['centerID'] ? `<a href="detail.html?id=${encodeURIComponent(r['centerID'])}" style="font-size:11px;color:var(--primary-light);margin-left:4px">→</a>` : ''}
+        ${r['centerID']||''}
+        ${r['centerID'] ? `<a href="detail.html?id=${encodeURIComponent(r['centerID'])}"
+          style="font-size:11px;color:var(--primary-light);margin-left:4px">→</a>` : ''}
       </td>
       <td style="font-size:12px;color:var(--text-sub)">${r['siteID']||''}</td>
-      <td style="font-size:12px">${r['변경항목']||''}</td>
+      <td style="font-size:12px">${r['항목']||''}</td>
       <td>
-        <span class="change-before">${r['변경전값']||''}</span>
-        ${r['변경전값'] && r['변경후값'] ? '<span class="arrow">→</span>' : ''}
-        <span class="change-after">${r['변경후값']||''}</span>
+        <span class="change-before">${r['변경전']||''}</span>
+        ${r['변경전'] && r['변경후'] ? '<span class="arrow">→</span>' : ''}
+        <span class="change-after">${r['변경후']||''}</span>
       </td>
     </tr>
   `).join('');

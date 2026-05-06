@@ -401,7 +401,7 @@ async function loadData() {
     }
 
     // branch 전용 만료 임박 알림
-    if (isBranch) renderBranchAlerts();
+    renderAlerts();
 
     renderSummary(allData);
     applyFilter();
@@ -413,55 +413,56 @@ async function loadData() {
 }
 
 // ==============================
-// branch 전용 만료 임박 알림 배너
+// 만료 임박 / OFF 교실 알림 배너 (전 role)
 // ==============================
-function renderBranchAlerts() {
-  const alerts = [];
+function renderAlerts() {
+  const el = document.getElementById('branch-alerts');
+  if (!el) return;
 
-  // 계약 만료 90일 이내 기관
-  allData.forEach(r => {
-    const ct = ctMap[r['centerID']];
-    if (!ct || !ct['계약종료일']) return;
-    const d = calcDday(ct['계약종료일']);
-    if (d !== null && d <= 90 && r['진행단계'] !== '7') {
-      alerts.push({ r, ct, d });
-    }
-  });
+  // 계약 만료 90일 이내 (취소 제외)
+  const expiring = allData
+    .filter(r => r['진행단계'] !== '7')
+    .map(r => ({ r, ct: ctMap[r['centerID']] }))
+    .filter(({ ct }) => ct && ct['계약종료일'])
+    .map(({ r, ct }) => ({ r, ct, d: calcDday(ct['계약종료일']) }))
+    .filter(({ d }) => d !== null && d <= 90)
+    .sort((a, b) => a.d - b.d);
 
   // OFF 교실 있는 기관
   const offInsts = allData.filter(r => {
     const cls = omsMap[r['centerID']] || [];
-    return cls.some(c => normalizeOmsStatus(c['OMS_상태']) === 'OFF');
+    return cls.some(c => {
+      const s = String(c['OMS_상태'] || '').toUpperCase();
+      return s === 'OFF';
+    });
   });
-
-  const el = document.getElementById('branch-alerts');
-  if (!el) return;
 
   const html = [];
 
-  if (alerts.length > 0) {
-    alerts.sort((a, b) => a.d - b.d);
-    const items = alerts.map(({ r, d }) => {
+  if (expiring.length > 0) {
+    const items = expiring.map(({ r, d }) => {
       const label = d < 0 ? '만료됨' : d === 0 ? 'D-day' : `D-${d}`;
       const color = d <= 30 ? '#991b1b' : '#92400e';
-      return `<span style="margin-right:12px;color:${color}">⚠️ <strong>${r['기관명']}</strong> ${label}</span>`;
+      return `<span style="margin-right:12px;color:${color}">
+        ⚠️ <strong style="cursor:pointer;text-decoration:underline"
+          onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
+          ${r['기관명']}
+        </strong> ${label}
+      </span>`;
     }).join('');
-    html.push(`
-      <div class="branch-alert">
-        📅 계약 만료 임박 — ${items}
-      </div>
-    `);
+    html.push(`<div class="branch-alert">📅 계약 만료 임박 — ${items}</div>`);
   }
 
   if (offInsts.length > 0) {
     const items = offInsts.map(r =>
-      `<strong>${r['기관명']}</strong>`
-    ).join(', ');
-    html.push(`
-      <div class="branch-alert" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">
-        🔴 OFF 교실 있음 — ${items}
-      </div>
-    `);
+      `<strong style="cursor:pointer;text-decoration:underline;margin-right:8px"
+        onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
+        ${r['기관명']}
+      </strong>`
+    ).join('');
+    html.push(`<div class="branch-alert" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">
+      🔴 OFF 교실 있음 — ${items}
+    </div>`);
   }
 
   el.innerHTML = html.join('');

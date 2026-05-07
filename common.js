@@ -37,7 +37,39 @@ const CH = {
       method: 'POST',
       body: JSON.stringify({ action, token: this.token, data, requestId })
     });
-    return r.json();
+    const result = await r.json();
+    // 쓰기 성공 시 프론트 캐시 무효화
+    if (result.ok || result.duplicate) this.clearCache();
+    return result;
+  },
+
+  // ==============================
+  // 프론트 캐시 (sessionStorage)
+  // ==============================
+  _cacheKey(params) {
+    return 'ch_cache_' + JSON.stringify(params) + '_' + this.role + '_' + (this.branch || '');
+  },
+
+  async getCached(params, ttlMs = 60000) {
+    const key = this._cacheKey(params);
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        const { ts, data } = JSON.parse(raw);
+        if (Date.now() - ts < ttlMs) return data;
+      }
+    } catch(e) {}
+    const data = await this.get(params);
+    try { sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+    return data;
+  },
+
+  clearCache() {
+    try {
+      Object.keys(sessionStorage)
+        .filter(k => k.startsWith('ch_cache_'))
+        .forEach(k => sessionStorage.removeItem(k));
+    } catch(e) {}
   },
 
   // ==============================

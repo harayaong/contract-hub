@@ -364,35 +364,20 @@ async function loadData() {
   document.getElementById('omsGrid').innerHTML   = '<div class="oms-chip"><div class="oms-chip-count">-</div><div class="oms-chip-label">불러오는 중...</div></div>';
 
   try {
-    const [instRes, omsRes, ctRes] = await Promise.all([
-      CH.get({ action: 'getInstitutions' }),
-      CH.get({ action: 'getOmsStatus' }),
-      CH.get({ action: 'getContracts' }),
-    ]);
+    // 기관 + 교실 + 계약 한번에
+    const r = await CH.getCached({ action: 'getAll' });
+    if (!r.ok) throw new Error(r.error);
 
-    if (!instRes.ok) throw new Error(instRes.error);
-    allData = instRes.data;
+    allData = r.institutions || [];
+    ctMap   = r.contracts    || {};
 
-    // OMS 맵
     omsMap = {};
-    if (omsRes.ok && omsRes.data) {
-      omsRes.data.forEach(cls => {
-        const cid = cls['centerID'] || '';
-        if (!cid) return;
-        if (!omsMap[cid]) omsMap[cid] = [];
-        omsMap[cid].push(cls);
-      });
-    }
-
-    // 계약정보 맵 (centerID → 최신)
-    ctMap = {};
-    if (ctRes.ok && ctRes.data) {
-      ctRes.data.forEach(ct => { ctMap[ct['centerID']] = ct; });
-    }
+    const classrooms = r.classrooms || {};
+    Object.entries(classrooms).forEach(([cid, list]) => { omsMap[cid] = list; });
 
     // 본사만 지사 드롭다운
     if (!isBranch) {
-      const jisaSet = new Set(allData.map(r => r['담당지사']).filter(Boolean));
+      const jisaSet = new Set(allData.map(row => row['담당지사']).filter(Boolean));
       const sel = document.getElementById('f-jisa');
       sel.innerHTML = '<option value="">전체 지사</option>';
       [...jisaSet].sort().forEach(v => {
@@ -402,9 +387,7 @@ async function loadData() {
       });
     }
 
-    // branch 전용 만료 임박 알림
     renderAlerts();
-
     renderSummary(allData);
     applyFilter();
 

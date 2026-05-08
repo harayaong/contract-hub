@@ -135,16 +135,13 @@ let inst = null, clsData = [], ctData = null;
 
 async function loadDetail() {
   try {
-    const [instRes, clsRes, ctRes] = await Promise.all([
-      CH.get({ action: 'getInstitutions' }),
-      CH.get({ action: 'getClassrooms', centerID }),
-      CH.get({ action: 'getContracts',  centerID }),
-    ]);
+    // getAll (캐시 활용) + 상세 페이지는 항상 최신이어야 하므로 TTL 짧게
+    const r = await CH.getCached({ action: 'getAll' }, 30000);
+    if (!r.ok) throw new Error(r.error);
 
-    if (!instRes.ok) throw new Error(instRes.error);
-    inst    = (instRes.data || []).find(x => x['centerID'] === centerID) || null;
-    clsData = clsRes.ok  ? clsRes.data  : [];
-    ctData  = ctRes.ok && ctRes.data.length ? ctRes.data[0] : null;
+    inst    = (r.institutions || []).find(x => x['centerID'] === centerID) || null;
+    clsData = (r.classrooms   || {})[centerID] || [];
+    ctData  = (r.contracts    || {})[centerID] || null;
 
     if (!inst) {
       document.getElementById('detail-content').innerHTML =
@@ -234,17 +231,38 @@ function renderDetail() {
   ` : '<div class="empty" style="padding:20px">계약 정보 없음</div>';
 
   // 교실 목록
-  const clsRows = clsData.length ? clsData.map(c => `
-    <tr>
+  const clsRows = clsData.length ? clsData.map((c, i) => `
+    <tr id="cls-row-${i}">
       <td><strong>${c['siteID']||''}</strong></td>
       <td>${c['교실명']||''}</td>
-      <td style="color:var(--text-sub)">${CH.fmtDate(c['서비스시작일'])}</td>
-      <td style="color:var(--text-sub)">${CH.fmtDate(c['서비스종료일'])}</td>
+      <td style="color:var(--text-sub)" id="cls-start-${i}">${CH.fmtDate(c['서비스시작일'])}</td>
+      <td style="color:var(--text-sub)" id="cls-end-${i}">${CH.fmtDate(c['서비스종료일'])}</td>
       <td>${CH.badgeStatus(c['OMS_상태'] === 'APPROVED' ? 'ON' : c['OMS_상태'])}</td>
       <td style="font-size:12px;color:var(--text-sub)">${fmtDays(c['OMS_서비스요일'])}</td>
       <td style="font-size:12px;color:var(--text-sub)">${c['OMS_스케줄']||''}</td>
+      ${CH.role !== 'branch' ? `<td><button class="memo-btn" onclick="editClsDate(${i})">수정</button></td>` : ''}
     </tr>
-  `).join('') : '<tr><td colspan="7" class="empty">등록된 교실 없음</td></tr>';
+    <tr id="cls-edit-row-${i}" style="display:none;background:#f8fafc">
+      <td colspan="${CH.role !== 'branch' ? 8 : 7}">
+        <div style="display:flex;gap:12px;align-items:center;padding:6px 0;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-sub);white-space:nowrap">서비스 시작일</label>
+            <input id="cls-edit-start-${i}" type="date" value="${c['서비스시작일']||''}"
+              style="font-size:13px;border:1.5px solid var(--border);border-radius:8px;padding:5px 8px;font-family:inherit">
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-sub);white-space:nowrap">서비스 종료일</label>
+            <input id="cls-edit-end-${i}" type="date" value="${c['서비스종료일']||''}"
+              style="font-size:13px;border:1.5px solid var(--border);border-radius:8px;padding:5px 8px;font-family:inherit">
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="memo-btn" onclick="saveClsDate(${i}, '${c['siteID']}')">저장</button>
+            <button class="memo-btn" onclick="cancelClsEdit(${i})">취소</button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  `).join('') : `<tr><td colspan="${CH.role !== 'branch' ? 8 : 7}" class="empty">등록된 교실 없음</td></tr>`;
 
   const tmpBadge = isTmp ? `<span class="tag-tmp" style="margin-left:8px">임시ID</span>` : '';
 
@@ -407,6 +425,7 @@ function renderDetail() {
               <th>OMS 상태 <span style="font-size:10px;font-weight:400;color:#94a3b8">자동</span></th>
               <th>서비스 요일 <span style="font-size:10px;font-weight:400;color:#94a3b8">자동</span></th>
               <th>스케줄 <span style="font-size:10px;font-weight:400;color:#94a3b8">자동</span></th>
+              ${CH.role !== 'branch' ? '<th></th>' : ''}
             </tr>
           </thead>
           <tbody id="cls-tbody">${clsRows}</tbody>
@@ -682,7 +701,38 @@ function toggleAddClassroom() {
   `;
 }
 
-async function saveClassroom() {
+// ==============================
+// 교실 서비스 날짜 수정
+// ==============================
+function editClsDate(i) {
+  document.getElementById(`cls-edit-row-${i}`).style.display = '';
+  document.getElementById(`cls-row-${i}`).style.opacity = '0.5';
+}
+function cancelClsEdit(i) {
+  document.getElementById(`cls-edit-row-${i}`).style.display = 'none';
+  document.getElementById(`cls-row-${i}`).style.opacity = '1';
+}
+async function saveClsDate(i, siteID) {
+  const 서비스시작일 = document.getElementById(`cls-edit-start-${i}`)?.value || '';
+  const 서비스종료일 = document.getElementById(`cls-edit-end-${i}`)?.value   || '';
+
+  // Optimistic
+  clsData[i] = { ...clsData[i], 서비스시작일, 서비스종료일 };
+  cancelClsEdit(i);
+  document.getElementById(`cls-start-${i}`).textContent = CH.fmtDate(서비스시작일);
+  document.getElementById(`cls-end-${i}`).textContent   = CH.fmtDate(서비스종료일);
+  CH.showToast('교실 날짜가 수정되었습니다.');
+
+  CH.post('saveClassroomDate', { siteID, centerID, 서비스시작일, 서비스종료일 })
+    .then(result => {
+      if (!result.ok && !result.duplicate) {
+        CH.showToast('저장 실패 — 되돌려졌습니다.');
+        loadDetail();
+      }
+    }).catch(() => { CH.showToast('서버 오류 — 되돌려졌습니다.'); loadDetail(); });
+}
+
+
   const siteID = (document.getElementById('add-siteID')?.value || '').trim();
   if (!siteID) { CH.showToast('siteID는 필수입니다.'); return; }
 
@@ -762,6 +812,7 @@ function renderMemos() {
         <div class="memo-meta">
           <span class="memo-author">${m.author || '-'}</span>
           ${m.ts ? `<span>${m.ts}</span>` : ''}
+          ${m.editedAt ? `<span style="color:#f59e0b">수정됨 ${m.editedAt}</span>` : ''}
         </div>
         <div class="memo-text" id="memo-text-${i}">${escHtml(m.text)}</div>
         <textarea class="memo-edit-area" id="memo-edit-${i}" style="display:none">${escHtml(m.text)}</textarea>
@@ -799,8 +850,7 @@ function cancelEditMemo(i) {
 async function saveEditMemo(i) {
   const newText = (document.getElementById(`memo-edit-${i}`)?.value || '').trim();
   if (!newText) { CH.showToast('내용을 입력해주세요.'); return; }
-
-  memos[i] = { ...memos[i], text: newText, ts: memos[i].ts + ' (수정됨)' };
+  memos[i] = { ...memos[i], text: newText, editedAt: nowStr() };
   await saveMemos();
 }
 

@@ -81,12 +81,21 @@
       </div>
 
       <div class="log-filter-row">
-        <input class="log-search" id="log-search" placeholder="centerID 또는 처리자 검색" oninput="applyLogFilter()">
+        <input class="log-search" id="log-search" placeholder="기관명, centerID 또는 처리자 검색" oninput="applyLogFilter()">
         <select class="log-select" id="log-sheet" onchange="applyLogFilter()">
           <option value="">전체 대상</option>
           <option>기관마스터</option>
           <option>계약정보</option>
           <option>교실정보</option>
+        </select>
+        <select class="log-select" id="log-항목" onchange="applyLogFilter()">
+          <option value="">전체 항목</option>
+          <option>신규등록</option>
+          <option>진행단계</option>
+          <option>계약입력</option>
+          <option>계약취소</option>
+          <option>siteID확정</option>
+          <option>비고</option>
         </select>
         <span class="log-count" id="log-count">0건</span>
       </div>
@@ -127,6 +136,7 @@ if (isBranch) {
 }
 
 let logData = [];
+let instNameMap = {}; // centerID → 기관명
 
 loadLogs();
 
@@ -135,9 +145,18 @@ async function loadLogs() {
     '<tr><td colspan="7" class="empty">데이터 불러오는 중...</td></tr>';
 
   try {
-    const d = await CH.get({ action: 'getLogs' });
+    // 로그 + 기관명 맵 병렬 로드
+    const [d, allRes] = await Promise.all([
+      CH.get({ action: 'getLogs' }),
+      CH.getCached({ action: 'getAll' }, 60000),
+    ]);
     if (!d.ok) throw new Error(d.error);
     logData = d.data;
+    if (allRes.ok) {
+      (allRes.institutions || []).forEach(inst => {
+        instNameMap[inst['centerID']] = inst['기관명'] || '';
+      });
+    }
     applyLogFilter();
   } catch(e) {
     document.getElementById('log-tbody').innerHTML =
@@ -147,15 +166,19 @@ async function loadLogs() {
 
 function applyLogFilter() {
   const q     = (document.getElementById('log-search')?.value || '').toLowerCase();
-  const sheet = document.getElementById('log-sheet')?.value || '';
+  const sheet = document.getElementById('log-sheet')?.value  || '';
+  const 항목  = document.getElementById('log-항목')?.value   || '';
 
   const filtered = logData.filter(r => {
+    const instName = instNameMap[r['centerID']] || '';
     const matchQ = !q ||
       (r['centerID'] ||'').toLowerCase().includes(q) ||
       (r['처리자']   ||'').toLowerCase().includes(q) ||
-      (r['항목']     ||'').toLowerCase().includes(q);
+      (r['항목']     ||'').toLowerCase().includes(q) ||
+      instName.toLowerCase().includes(q);
     const matchSheet = !sheet || r['대상시트'] === sheet;
-    return matchQ && matchSheet;
+    const match항목  = !항목  || (r['항목'] || '').includes(항목);
+    return matchQ && matchSheet && match항목;
   });
 
   document.getElementById('log-count').textContent = `${filtered.length}건`;
@@ -166,15 +189,19 @@ function applyLogFilter() {
     return;
   }
 
-  tb.innerHTML = filtered.map(r => `
+  tb.innerHTML = filtered.map(r => {
+    const instName = instNameMap[r['centerID']] || '';
+    return `
     <tr>
       <td style="white-space:nowrap;color:var(--text-hint)">${CH.fmtDate(r['일시'])}</td>
       <td><strong>${r['처리자']||''}</strong></td>
       <td>${r['대상시트']||''}</td>
       <td>
-        ${r['centerID']||''}
-        ${r['centerID'] ? `<a href="detail.html?id=${encodeURIComponent(r['centerID'])}"
-          style="font-size:11px;color:var(--primary-light);margin-left:4px">→</a>` : ''}
+        ${instName ? `<div style="font-weight:600;font-size:13px">${instName}</div>` : ''}
+        <div style="font-size:11px;color:var(--text-hint)">${r['centerID']||''}
+          ${r['centerID'] ? `<a href="detail.html?id=${encodeURIComponent(r['centerID'])}"
+            style="color:var(--primary-light);margin-left:4px">→</a>` : ''}
+        </div>
       </td>
       <td style="font-size:12px;color:var(--text-sub)">${r['siteID']||''}</td>
       <td style="font-size:12px">${r['항목']||''}</td>
@@ -184,7 +211,7 @@ function applyLogFilter() {
         <span class="change-after">${r['변경후']||''}</span>
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 </script>
 </body>

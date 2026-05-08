@@ -154,7 +154,10 @@
     <!-- 결과 -->
     <div class="filter-result">
       <span class="filter-count">필터 결과: <strong id="filterCount">0건</strong></span>
-      <button class="reset-btn" onclick="resetFilters()">초기화</button>
+      <div style="display:flex;gap:8px">
+        <button class="reset-btn" onclick="exportCSV()">📥 CSV 내보내기</button>
+        <button class="reset-btn" onclick="resetFilters()">초기화</button>
+      </div>
     </div>
 
     <div id="filter-list"><div class="empty">데이터 불러오는 중...</div></div>
@@ -323,6 +326,69 @@ function resetFilters() {
   document.querySelector('#tmpPills .pill[data-tmp="all"]')?.classList.add('active');
   document.querySelectorAll('#tmpPills .pill:not([data-tmp="all"])').forEach(b => b.classList.remove('active'));
   applyFilters();
+}
+
+// ==============================
+// CSV 내보내기
+// ==============================
+function exportCSV() {
+  // 현재 필터 결과 재계산
+  const q     = (document.getElementById('f-search')?.value || '').toLowerCase();
+  const jisa  = document.getElementById('f-jisa')?.value  || '';
+  const sido  = document.getElementById('f-sido')?.value  || '';
+  const gungu = document.getElementById('f-gungu')?.value || '';
+  const oms   = document.getElementById('f-oms')?.value   || '';
+
+  const filtered = ovData.filter(r => {
+    const matchQ     = !q     || (r['기관명']||'').toLowerCase().includes(q)
+                               || (r['centerID']||'').toLowerCase().includes(q);
+    const matchStage = activeStage === 'all' || r['진행단계'] === activeStage;
+    const matchJisa  = !jisa  || r['담당지사']  === jisa;
+    const matchSido  = !sido  || r['주소_시도'] === sido;
+    const matchGungu = !gungu || r['주소_군구'] === gungu;
+    const matchTmp   = activeTmp === 'all' || r['임시ID여부'] === activeTmp;
+    let matchOms = true;
+    if (oms) {
+      const clsList = omsMap[r['centerID']] || [];
+      if (oms === 'NONE') {
+        matchOms = clsList.length === 0;
+      } else {
+        matchOms = clsList.some(cls => {
+          const s = String(cls['OMS_상태'] || '').toUpperCase();
+          if (oms === 'ON')     return s === 'ON' || s === 'APPROVED';
+          if (oms === 'OFF')    return s === 'OFF';
+          if (oms === 'SANITY') return s.includes('SANITY');
+          return false;
+        });
+      }
+    }
+    return matchQ && matchStage && matchJisa && matchSido && matchGungu && matchTmp && matchOms;
+  });
+
+  if (!filtered.length) { CH.showToast('내보낼 데이터가 없습니다.'); return; }
+
+  const STAGE_LABELS_CSV = ['계약','Admin등록','siteID부여','설치완료','업로드확인','서비스오픈','취소'];
+  const headers = ['centerID','기관명','담당지사','주소_시도','주소_군구','주소_상세',
+                   '원장님성함','원장님연락처','대표교사연락처','진행단계','임시ID여부','등록일'];
+  const esc = v => `"${String(v||'').replace(/"/g,'""')}"`;
+
+  const rows = [
+    headers.join(','),
+    ...filtered.map(r => headers.map(h => {
+      if (h === '진행단계') return esc(STAGE_LABELS_CSV[parseInt(r[h])-1] || r[h]);
+      return esc(r[h]);
+    }).join(','))
+  ];
+
+  const bom  = '\uFEFF'; // 한글 깨짐 방지
+  const blob = new Blob([bom + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `contract-hub-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  CH.showToast(`${filtered.length}건 내보내기 완료`);
 }
 
 // ==============================

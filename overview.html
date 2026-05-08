@@ -416,10 +416,7 @@ function renderAlerts() {
   // OFF 교실 있는 기관
   const offInsts = allData.filter(r => {
     const cls = omsMap[r['centerID']] || [];
-    return cls.some(c => {
-      const s = String(c['OMS_상태'] || '').toUpperCase();
-      return s === 'OFF';
-    });
+    return cls.some(c => String(c['OMS_상태'] || '').toUpperCase() === 'OFF');
   });
 
   const html = [];
@@ -433,20 +430,21 @@ function renderAlerts() {
           onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
           ${r['기관명']}
         </strong> ${label}
+        ${!isBranch ? `<span style="font-size:11px;color:var(--text-hint)">(${r['담당지사']||''})</span>` : ''}
       </span>`;
     }).join('');
-    html.push(`<div class="branch-alert">📅 계약 만료 임박 — ${items}</div>`);
+    html.push(`<div class="branch-alert">📅 계약 만료 임박 (90일 이내) ${expiring.length}건 — ${items}</div>`);
   }
 
   if (offInsts.length > 0) {
     const items = offInsts.map(r =>
       `<strong style="cursor:pointer;text-decoration:underline;margin-right:8px"
         onclick="location.href='detail.html?id=${encodeURIComponent(r['centerID'])}'">
-        ${r['기관명']}
+        ${r['기관명']}${!isBranch ? `<span style="font-size:10px;font-weight:400;color:#fca5a5">(${r['담당지사']||''})</span>` : ''}
       </strong>`
     ).join('');
     html.push(`<div class="branch-alert" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">
-      🔴 OFF 교실 있음 — ${items}
+      🔴 OFF 교실 있음 ${offInsts.length}건 — ${items}
     </div>`);
   }
 

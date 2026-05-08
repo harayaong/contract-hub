@@ -122,6 +122,7 @@
             <label>기관명 <span style="color:#ef4444">*</span></label>
             <input id="ct-기관명" placeholder="예: 파스텔어린이집" oninput="onInstNameInput()">
             <div class="tmp-id-preview" id="tmpIdPreview"></div>
+            <div class="field-hint" id="dupHint" style="margin-top:4px;font-size:12px"></div>
           </div>
 
           <!-- 고객표시명: admin만 표시 -->
@@ -345,26 +346,53 @@ async function loadJisaList() {
 // ==============================
 // 기관명 입력 시
 // ==============================
+let dupCheckTimer = null;
 function onInstNameInput() {
   const 기관명  = document.getElementById('ct-기관명').value.trim();
   const preview = document.getElementById('tmpIdPreview');
 
   if (!기관명) {
     preview.style.display = 'none';
-  } else {
-    const cleaned   = 기관명.replace(/[^가-힣a-zA-Z0-9]/g, '');
-    const romanized = cleaned.substring(0, 6).split('').map(c => {
-      const code = c.charCodeAt(0);
-      if (code >= 0xAC00 && code <= 0xD7A3) {
-        const onset  = Math.floor((code - 0xAC00) / 28 / 21);
-        const onsets = ['g','kk','n','d','tt','r','m','b','pp','s','','j','jj','ch','k','t','p','h'];
-        return onsets[onset] || 'x';
-      }
-      return c.toLowerCase();
-    }).join('');
-    preview.textContent   = `임시ID 예시: tmp_${romanized || 'inst'}_****`;
-    preview.style.display = 'block';
+    return;
   }
+
+  const cleaned   = 기관명.replace(/[^가-힣a-zA-Z0-9]/g, '');
+  const romanized = cleaned.substring(0, 6).split('').map(c => {
+    const code = c.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      const onset  = Math.floor((code - 0xAC00) / 28 / 21);
+      const onsets = ['g','kk','n','d','tt','r','m','b','pp','s','','j','jj','ch','k','t','p','h'];
+      return onsets[onset] || 'x';
+    }
+    return c.toLowerCase();
+  }).join('');
+  preview.textContent   = `임시ID 예시: tmp_${romanized || 'inst'}_****`;
+  preview.style.display = 'block';
+
+  // 중복 감지 (디바운스 500ms)
+  clearTimeout(dupCheckTimer);
+  dupCheckTimer = setTimeout(() => checkDuplicateInst(기관명), 500);
+}
+
+async function checkDuplicateInst(기관명) {
+  const hint = document.getElementById('dupHint');
+  if (!hint || !기관명) return;
+  try {
+    const r = await CH.getCached({ action: 'getAll' }, 60000);
+    if (!r.ok) return;
+    const matches = (r.institutions || []).filter(inst =>
+      (inst['기관명'] || '').includes(기관명) || 기관명.includes(inst['기관명'] || '')
+    );
+    if (matches.length > 0) {
+      hint.innerHTML = `⚠️ 유사한 기관이 ${matches.length}개 있습니다: ${matches.slice(0,3).map(m =>
+        `<a href="detail.html?id=${encodeURIComponent(m['centerID'])}" target="_blank"
+          style="color:var(--primary-light)">${m['기관명']}</a>`
+      ).join(', ')}`;
+      hint.style.color = '#f59e0b';
+    } else {
+      hint.textContent = '';
+    }
+  } catch(e) {}
 }
 
 // ==============================

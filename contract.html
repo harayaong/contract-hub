@@ -70,6 +70,11 @@
     font-size: 11px; color: var(--text-hint); margin-top: 4px;
   }
 
+  /* PC: 폼 카드 최대 너비 제한 */
+  @media (min-width: 769px) {
+    .content .card { max-width: 760px; }
+    .form-grid { grid-template-columns: repeat(2, minmax(0, 340px)); }
+  }
   @media (max-width: 375px) {
     .form-group input, .form-group select, .form-group textarea { font-size: 16px; }
     .plan-cards { flex-direction: column; }

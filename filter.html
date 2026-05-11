@@ -45,8 +45,18 @@
   .tag-tmp { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #92400e; }
   .f-select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; background: #f8fafc; outline: none; font-family: inherit; transition: border-color 0.2s; }
   .f-select:focus { border-color: var(--primary-light); background: #fff; }
+  /* PC: 4개 필터를 한 줄에 */
+  @media (min-width: 769px) {
+    .filter-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .filter-grid + .filter-grid { display: none; } /* 두번째 grid는 숨김 (첫번째로 통합) */
+    .filter-grid-all { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  }
   @media (max-width: 768px) {
-    .filter-grid { grid-template-columns: 1fr; }
+    .filter-grid { grid-template-columns: 1fr 1fr; }
+    .filter-grid-all { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  }
+  @media (max-width: 480px) {
+    .filter-grid-all { grid-template-columns: 1fr; }
   }
   @media (max-width: 375px) {
     .pill { font-size: 12px; padding: 5px 10px; }
@@ -107,8 +117,8 @@
       </div>
     </div>
 
-    <!-- 담당지사 + 시도 + 군구 -->
-    <div class="filter-grid">
+    <!-- 담당지사 + 시도 + 군구 + OMS -->
+    <div class="filter-grid-all">
       <div class="filter-card" style="margin-bottom:0">
         <div class="filter-label">담당지사</div>
         <select class="f-select" id="f-jisa" onchange="applyFilters()">
@@ -121,8 +131,6 @@
           <option value="">전체</option>
         </select>
       </div>
-    </div>
-    <div class="filter-grid" style="margin-top:12px">
       <div class="filter-card" style="margin-bottom:0">
         <div class="filter-label">군구</div>
         <select class="f-select" id="f-gungu" onchange="applyFilters()">
